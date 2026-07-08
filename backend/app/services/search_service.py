@@ -1,6 +1,6 @@
-from sqlalchemy import or_, func, cast
+import math
+from sqlalchemy import or_, func
 from sqlalchemy.orm import Session
-from geoalchemy2 import Geography
 import Levenshtein
 
 from app.models.etablissement import Etablissement
@@ -106,12 +106,13 @@ def apply_filters(db: Session, f: SearchFilters):
 
     if f.lat is not None and f.lon is not None:
         rayon = f.rayon_m or 2000
-        point = cast(
-            func.ST_SetSRID(func.ST_MakePoint(f.lon, f.lat), 4326),
-            Geography,
-        )
+        lat_delta = rayon / 111320
+        lon_delta = rayon / (111320 * math.cos(math.radians(f.lat)))
         query = query.filter(
-            func.ST_DWithin(cast(Etablissement.geom, Geography), point, rayon)
+            Etablissement.latitude.isnot(None),
+            Etablissement.longitude.isnot(None),
+            Etablissement.latitude.between(f.lat - lat_delta, f.lat + lat_delta),
+            Etablissement.longitude.between(f.lon - lon_delta, f.lon + lon_delta),
         )
 
     return query

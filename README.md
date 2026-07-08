@@ -42,10 +42,14 @@ mot de passe `geocolleges`, base `geocolleges`.
 | Variable               | Description                                              | Défaut |
 |-------------------------|-----------------------------------------------------------|--------|
 | `DATABASE_URL`          | Chaîne de connexion PostgreSQL                             | voir `docker-compose.yml` |
-| `SECRET_KEY`            | Clé de signature JWT                                       | à définir |
-| `ANTHROPIC_API_KEY`     | Clé Claude API pour `/api/search/ai`. Optionnelle : sans clé, fallback automatique sur un moteur de règles + Levenshtein local | vide |
-| `SEED_ADMIN_EMAIL`      | Email du compte admin créé au démarrage                    | admin@geocolleges.cm |
-| `SEED_ADMIN_PASSWORD`   | Mot de passe du compte admin créé au démarrage              | Admin123! |
+| `SECRET_KEY`            | Clé de signature JWT (`openssl rand -hex 32`)              | à définir |
+| `DEEPSEEK_API_KEY`      | Clé DeepSeek pour `/api/search/ai` (prioritaire)           | vide |
+| `DEEPSEEK_BASE_URL`     | URL de l'API DeepSeek                                      | `https://api.deepseek.com` |
+| `DEEPSEEK_MODEL`        | Modèle DeepSeek à utiliser                                 | `deepseek-chat` |
+| `ANTHROPIC_API_KEY`     | Clé Claude API pour `/api/search/ai` (fallback si pas de DeepSeek) | vide |
+| `SEED_ADMIN_EMAIL`      | Email du compte admin créé au démarrage                    | `admin@geocolleges.cm` |
+| `SEED_ADMIN_PASSWORD`   | Mot de passe du compte admin créé au démarrage              | `Admin123!` |
+| `CORS_EXTRA_ORIGINS`    | URL(s) frontend supplémentaires séparées par des virgules  | vide |
 
 ## Développement sans Docker
 
@@ -155,18 +159,38 @@ Dans le tableau de bord Railway :
    ```
 3. La variable `DATABASE_URL` est injectée automatiquement dans le service backend.
 
+#### Paramètres Railway (Settings)
+
+| Champ | Valeur |
+|---|---|
+| Root Directory | `/backend` |
+| Branch | `main` |
+| Custom Build Command | *(vide — géré par `railway.toml`)* |
+| Custom Start Command | *(vide — géré par `railway.toml`)* |
+| Watch Paths | `/backend/**` |
+| Healthcheck Path | `/api/health` |
+| Restart Policy | On Failure — 10 retries |
+
+Le fichier `backend/railway.toml` configure automatiquement :
+- Builder : Nixpacks
+- Start command : `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+- Healthcheck : `/api/health`
+
 #### Variables d'environnement Railway
 
-5. Configurer les variables d'environnement dans Railway :
+Dans l'onglet **Variables** du service backend :
 
-   | Variable               | Valeur                                              |
-   |------------------------|------------------------------------------------------|
-   | `DATABASE_URL`         | Générée automatiquement par le service PostgreSQL Railway |
-   | `SECRET_KEY`           | Chaîne aléatoire longue (ex: `openssl rand -hex 32`) |
-   | `ANTHROPIC_API_KEY`    | Optionnel — clé Claude pour la recherche IA          |
-   | `SEED_ADMIN_EMAIL`     | Email du compte admin initial                        |
-   | `SEED_ADMIN_PASSWORD`  | Mot de passe fort pour le compte admin               |
-   | `CORS_EXTRA_ORIGINS`   | URL Vercel du frontend (ex: `https://geocolleges.vercel.app`) |
+| Variable               | Valeur                                              |
+|------------------------|------------------------------------------------------|
+| `DATABASE_URL`         | `${{Postgres.DATABASE_URL}}` (référence auto le service PostgreSQL Railway) |
+| `SECRET_KEY`           | Chaîne aléatoire (`openssl rand -hex 32`)            |
+| `DEEPSEEK_API_KEY`     | Ta clé DeepSeek                                      |
+| `DEEPSEEK_BASE_URL`    | `https://api.deepseek.com`                           |
+| `DEEPSEEK_MODEL`       | `deepseek-chat`                                      |
+| `ANTHROPIC_API_KEY`    | Optionnel — clé Claude (fallback si pas de DeepSeek) |
+| `SEED_ADMIN_EMAIL`     | Email du compte admin initial                        |
+| `SEED_ADMIN_PASSWORD`  | Mot de passe fort pour le compte admin               |
+| `CORS_EXTRA_ORIGINS`   | URL Vercel du frontend (ex: `https://geocolleges.vercel.app`) |
 
 #### Initialiser la base après le premier déploiement
 

@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api", tags=["map"])
 @router.get("/map")
 def get_map_geojson(db: Session = Depends(get_db)):
     """Retourne tous les établissements au format GeoJSON FeatureCollection, prêt pour Leaflet."""
-    rows = db.query(Etablissement).filter(Etablissement.geom.isnot(None)).all()
+    rows = db.query(Etablissement).filter(Etablissement.latitude.isnot(None)).all()
     features = []
     for e in rows:
         features.append(

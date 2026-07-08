@@ -1,4 +1,3 @@
-from geoalchemy2 import Geometry
 from sqlalchemy import Column, Integer, String, DOUBLE_PRECISION, ForeignKey, DateTime, func
 
 from app.core.database import Base
@@ -32,6 +31,5 @@ class Etablissement(Base):
     coord_y_utm = Column(DOUBLE_PRECISION)
     latitude = Column(DOUBLE_PRECISION)
     longitude = Column(DOUBLE_PRECISION)
-    geom = Column(Geometry(geometry_type="POINT", srid=4326))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
