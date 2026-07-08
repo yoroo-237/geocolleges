@@ -753,23 +753,102 @@ export default function SearchMapPage() {
               </button>
 
               <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
-                <SlidersHorizontal size={15} /> Filtres
+                <SlidersHorizontal size={15} /> Filtres &amp; Recherche
                 {submittedCount > 0 && (
                   <span className="rounded-full bg-primary-600 text-white px-1.5 py-0.5 text-[10px]">{submittedCount}</span>
                 )}
               </h3>
 
-              <div className="space-y-3 mb-4">
-                {filterFields}
+              {/* ── AI Search (mobile drawer) ── */}
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-2.5 space-y-2 mb-4">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAiMode(m => !m)}
+                    className={clsx(
+                      'flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer',
+                      aiMode
+                        ? 'bg-violet-600 text-white shadow-sm'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    )}
+                  >
+                    <Sparkles size={12} /> ✦ IA DeepSeek
+                  </button>
+                  {aiMode && (
+                    <span className="text-[10px] text-violet-500 dark:text-violet-400 leading-tight">
+                      Langage naturel
+                    </span>
+                  )}
+                </div>
+
+                <AnimatePresence initial={false}>
+                  {aiMode && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden space-y-2"
+                    >
+                      <div className="relative">
+                        <Sparkles size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-violet-400 pointer-events-none" />
+                        <input
+                          type="text"
+                          placeholder='Ex : "lycée public avec bus"'
+                          value={aiQuery}
+                          onChange={e => setAiQuery(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); runAiSearch(); setShowFilters(false) } }}
+                          className="w-full rounded-xl border-2 border-violet-300 dark:border-violet-700 bg-white dark:bg-slate-900 pl-6 pr-20 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-violet-500 placeholder:text-slate-400"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => { runAiSearch(); setShowFilters(false) }}
+                          disabled={!aiQuery.trim() || isFetching}
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-lg bg-violet-600 px-2 py-1 text-[10px] font-semibold text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-violet-300 transition-colors"
+                        >
+                          {isFetching ? '…' : 'Rechercher'}
+                        </button>
+                      </div>
+
+                      {isFetching && submittedAiQuery && (
+                        <p className="text-[10px] text-violet-500 animate-pulse flex items-center gap-1">
+                          <Sparkles size={10} /> DeepSeek interprète votre requête…
+                        </p>
+                      )}
+
+                      {!isFetching && parsedAiFilters && Object.keys(parsedAiFilters).length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1">
+                          <span className="text-[10px] text-slate-400">DeepSeek a compris :</span>
+                          {Object.entries(parsedAiFilters).map(([k, v]) => {
+                            if (v === undefined || v === null) return null
+                            const label = k === 'q' ? `"${v}"` : k === 'fuzzy' ? 'Fuzzy' : `${FILTER_LABELS[k] ?? k} : ${v}`
+                            return (
+                              <span key={k} className="rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 px-2 py-0.5 text-[10px] font-medium">
+                                {label}
+                              </span>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
-              <button
-                type="button"
-                onClick={() => { runSearch(); setShowFilters(false) }}
-                className="w-full rounded-xl bg-primary-600 text-white px-4 py-2.5 text-sm font-semibold hover:bg-primary-700 transition-colors flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Search size={14} /> Appliquer et fermer
-              </button>
+              {!aiMode && (
+                <div className="space-y-3 mb-4">
+                  {filterFields}
+                </div>
+              )}
+
+              {!aiMode && (
+                <button
+                  type="button"
+                  onClick={() => { runSearch(); setShowFilters(false) }}
+                  className="w-full rounded-xl bg-primary-600 text-white px-4 py-2.5 text-sm font-semibold hover:bg-primary-700 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Search size={14} /> Appliquer et fermer
+                </button>
+              )}
 
               {(activeCount > 0 || submittedCount > 0) && (
                 <button
