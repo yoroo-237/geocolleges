@@ -1,6 +1,9 @@
 import logging
 
+import json
+
 from fastapi import APIRouter, Depends
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import distinct
 
@@ -20,9 +23,8 @@ def _distinct(db: Session, col):
     )
 
 
-@router.get("/search/options")
-def search_options(db: Session = Depends(get_db)):
-    """Retourne les valeurs distinctes présentes en BD pour chaque critère de recherche."""
+def get_db_options(db: Session) -> dict:
+    """Valeurs distinctes de tous les champs filtrables — partagé avec l'IA et le frontend."""
     return {
         "quartiers":          _distinct(db, Etablissement.quartier_nom),
         "statuts":            _distinct(db, Etablissement.statut),
@@ -35,6 +37,12 @@ def search_options(db: Session = Depends(get_db)):
         "moyens_transport":   _distinct(db, Etablissement.moyen_transport),
         "cantines":           _distinct(db, Etablissement.cantine_scolaire),
     }
+
+
+@router.get("/search/options")
+def search_options(db: Session = Depends(get_db)):
+    """Retourne les valeurs distinctes présentes en BD pour chaque critère de recherche."""
+    return get_db_options(db)
 
 
 @router.get("/search", response_model=list[EtablissementOut])
@@ -94,7 +102,7 @@ def search(
     return paginate(query, page, limit)
 
 
-@router.get("/search/ai", response_model=list[EtablissementOut])
+@router.get("/search/ai")
 def search_ai(
     query: str,
     page: int = 1,
@@ -102,15 +110,23 @@ def search_ai(
     db: Session = Depends(get_db),
 ):
     """
-    Recherche en langage naturel.
-    Ex: 'je cherche un lycée public avec bus à Sodiko'.
-    Utilise Claude API si une clé est configurée, sinon fallback local automatique.
+    Recherche en langage naturel avec filtres injectés depuis la BD.
+    Retourne les résultats + header X-Parsed-Filters avec les filtres appliqués.
     """
-    filters = parse_natural_language_query(query)
-    logger.info(f"AI search '{query}' → filters: {filters.model_dump(exclude_none=True)}")
+    options = get_db_options(db)
+    filters = parse_natural_language_query(query, options)
+    parsed = filters.model_dump(exclude_none=True, exclude={"page", "limit"})
+    logger.info(f"AI search '{query}' → filters: {parsed}")
+
     filters.page = page
     filters.limit = limit
     results = paginate(apply_filters(db, filters), page, limit)
     if not results and filters.q:
         results = levenshtein_best_matches(db, filters.q, limit=limit)
-    return results
+
+    from app.schemas.etablissement import EtablissementOut
+    data = [EtablissementOut.model_validate(r).model_dump() for r in results]
+    return JSONResponse(
+        content=data,
+        headers={"X-Parsed-Filters": json.dumps(parsed, ensure_ascii=False)},
+    )

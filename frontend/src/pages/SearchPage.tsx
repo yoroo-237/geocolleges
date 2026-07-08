@@ -84,6 +84,7 @@ export default function SearchPage() {
   const [aiQuery, setAiQuery] = useState('')
   const [submittedAiQuery, setSubmittedAiQuery] = useState('')
   const [submittedFilters, setSubmittedFilters] = useState<SearchFilters>(EMPTY)
+  const [parsedAiFilters, setParsedAiFilters] = useState<Record<string, unknown> | null>(null)
 
   useEffect(() => { setPage(1) }, [submittedFilters, aiMode, submittedAiQuery])
 
@@ -126,8 +127,12 @@ export default function SearchPage() {
     queryKey: aiMode ? ['search-ai', submittedAiQuery, page] : ['search', params],
     queryFn: async () => {
       if (aiMode && submittedAiQuery) {
-        return (await api.get('/search/ai', { params: { query: submittedAiQuery, page, limit: LIMIT } })).data
+        const resp = await api.get('/search/ai', { params: { query: submittedAiQuery, page, limit: LIMIT } })
+        const raw = resp.headers['x-parsed-filters']
+        try { setParsedAiFilters(raw ? JSON.parse(raw) : null) } catch { setParsedAiFilters(null) }
+        return resp.data
       }
+      setParsedAiFilters(null)
       return (await api.get('/search', { params })).data
     },
     enabled: aiMode ? Boolean(submittedAiQuery) : true,
@@ -217,6 +222,20 @@ export default function SearchPage() {
               <p className="mt-1.5 text-xs text-violet-500 animate-pulse flex items-center gap-1">
                 <Sparkles size={11} /> DeepSeek interprète votre requête…
               </p>
+            )}
+            {!isFetching && parsedAiFilters && Object.keys(parsedAiFilters).length > 0 && (
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <span className="text-xs text-slate-400">DeepSeek a compris :</span>
+                {Object.entries(parsedAiFilters).map(([k, v]) => {
+                  if (v === undefined || v === null) return null
+                  const label = k === 'q' ? `"${v}"` : k === 'fuzzy' ? 'Fuzzy' : `${FILTER_LABELS[k] ?? k} : ${v}`
+                  return (
+                    <span key={k} className="rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 px-2.5 py-0.5 text-xs font-medium">
+                      {label}
+                    </span>
+                  )
+                })}
+              </div>
             )}
           </motion.div>
         )}
