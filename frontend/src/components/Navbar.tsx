@@ -99,6 +99,15 @@ export default function Navbar() {
               <Icon size={16} /> {label}
             </NavLink>
           ))}
+          {isAuthenticated && (user?.role === 'admin' || user?.role === 'gestionnaire') && (
+            <NavLink
+              to="/admin"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30"
+            >
+              <ShieldCheck size={16} /> Admin
+            </NavLink>
+          )}
           {isAuthenticated ? (
             <button onClick={() => { logout(); setOpen(false) }} className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-left hover:bg-slate-100 dark:hover:bg-slate-800">
               <LogOut size={16} /> Déconnexion

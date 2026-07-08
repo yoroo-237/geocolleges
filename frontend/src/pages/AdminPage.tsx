@@ -2,15 +2,21 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import type { Etablissement, User } from '@/types'
-import { Trash2, Pencil, Plus, Upload, Users, FileClock, School, X, Save } from 'lucide-react'
+import { Trash2, Pencil, Plus, Upload, Users, FileClock, School, X, Save, Settings } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import clsx from 'clsx'
 
-type Tab = 'etablissements' | 'utilisateurs' | 'journal' | 'import'
+type Tab = 'etablissements' | 'utilisateurs' | 'journal' | 'import' | 'parametres'
 
 const emptyForm: Partial<Etablissement> = {
   nom: '', statut: 'Public', quartier_nom: '', section: '', cycle_enseignement: '',
   moyen_transport: '', cantine_scolaire: '', espace_sportif: '', filiere: '', route: '', telephone: '',
+}
+
+const emptyUserForm = {
+  email: '',
+  password: '',
+  role: 'user' as const,
 }
 
 export default function AdminPage() {
@@ -23,6 +29,7 @@ export default function AdminPage() {
     { id: 'utilisateurs', label: 'Utilisateurs', icon: Users },
     { id: 'journal', label: 'Journal', icon: FileClock },
     { id: 'import', label: 'Import CSV', icon: Upload },
+    { id: 'parametres', label: 'Paramètres', icon: Settings },
   ]
 
   return (
@@ -49,6 +56,7 @@ export default function AdminPage() {
       {tab === 'utilisateurs' && <UtilisateursTab />}
       {tab === 'journal' && <JournalTab />}
       {tab === 'import' && <ImportTab />}
+      {tab === 'parametres' && <ParametresTab />}
     </div>
   )
 }
