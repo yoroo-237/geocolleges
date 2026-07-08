@@ -251,7 +251,7 @@ export default function SearchPage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -16 }}
               transition={{ duration: 0.2 }}
-              className="fixed md:static inset-0 md:inset-auto z-40 md:z-auto md:flex flex-col gap-4 w-full md:w-72 shrink-0"
+              className="fixed md:static inset-0 md:inset-auto z-[70] md:z-auto md:flex flex-col gap-4 w-full md:w-72 shrink-0"
             >
               <div className="card p-4 flex flex-col gap-4 sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto">
                 <div className="flex items-center justify-between">
@@ -419,7 +419,7 @@ export default function SearchPage() {
         {showFilters && (
           <div 
             onClick={() => setShowFilters(false)}
-            className="md:hidden fixed inset-0 bg-black/40 z-30"
+            className="md:hidden fixed inset-0 bg-black/40 z-[60]"
           />
         )}
 
