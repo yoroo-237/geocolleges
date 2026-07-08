@@ -351,10 +351,10 @@ export default function SearchPage() {
         {/* Résultats */}
         <div className="flex-1 min-w-0">
           {/* Barre d'actions */}
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-4 relative z-50">
             <button
               onClick={() => setShowFilters(s => !s)}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+              className="flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors relative z-50"
             >
               <SlidersHorizontal size={16} />
               <span className="hidden md:inline">

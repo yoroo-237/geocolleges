@@ -241,13 +241,15 @@ export default function MapPage() {
           <Maximize size={18} />
         </button>
 
-        <button
-          onClick={() => setShowSidebar(true)}
-          className="lg:hidden absolute top-4 left-4 z-[1000] flex h-10 w-10 items-center justify-center rounded-xl bg-white text-slate-600 shadow-popup hover:bg-slate-50 cursor-pointer dark:bg-slate-800 dark:text-slate-200"
-          aria-label="Afficher les filtres"
-        >
-          <Menu size={18} />
-        </button>
+        {!showSidebar && (
+          <button
+            onClick={() => setShowSidebar(true)}
+            className="lg:hidden absolute top-4 left-4 z-[1000] flex h-10 w-10 items-center justify-center rounded-xl bg-white text-slate-600 shadow-popup hover:bg-slate-50 cursor-pointer dark:bg-slate-800 dark:text-slate-200"
+            aria-label="Afficher les filtres"
+          >
+            <Menu size={18} />
+          </button>
+        )}
 
         {/* Légende */}
         <div className="glass absolute left-4 top-4 z-[1000] rounded-xl p-3 text-xs shadow-card">
