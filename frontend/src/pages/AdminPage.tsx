@@ -430,7 +430,7 @@ function ParametresTab() {
   
   const resetDb = useMutation({
     mutationFn: async () => {
-      if (!confirm('⚠️ Êtes-vous sûr ? Cette action est IRRÉVERSIBLE et supprimera toutes les données.')) {
+      if (!confirm(' Êtes-vous sûr ? Cette action est IRRÉVERSIBLE et supprimera toutes les données.')) {
         throw new Error('Annulé')
       }
       return api.post('/admin/reset-db')
@@ -480,7 +480,7 @@ function ParametresTab() {
               disabled={resetDb.isPending}
               className="btn-danger !bg-red-600 !text-white hover:!bg-red-700"
             >
-              🗑️ Réinitialiser la base de données
+               Réinitialiser la base de données
             </button>
             {deleting && (
               <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/30 rounded-lg border border-red-200 dark:border-red-800">
@@ -509,7 +509,7 @@ function ParametresTab() {
       </div>
 
       <div className="card p-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-        <h3 className="font-semibold text-sm mb-2 text-blue-900 dark:text-blue-100">💡 Informations</h3>
+        <h3 className="font-semibold text-sm mb-2 text-blue-900 dark:text-blue-100"> Informations</h3>
         <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
           <li>• L'application est actuellement en version bêta</li>
           <li>• Les données sont sauvegardées en base de données PostgreSQL</li>

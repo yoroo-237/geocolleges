@@ -35,7 +35,7 @@ Accès une fois les conteneurs démarrés :
 Identifiants Adminer : système `PostgreSQL`, serveur `db`, utilisateur `geocolleges`,
 mot de passe `geocolleges`, base `geocolleges`.
 
-**⚠️ Changez le mot de passe admin et `SECRET_KEY` avant tout déploiement en production.**
+** Changez le mot de passe admin et `SECRET_KEY` avant tout déploiement en production.**
 
 ## Variables d'environnement (backend)
 
