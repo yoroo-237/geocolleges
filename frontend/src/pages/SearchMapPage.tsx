@@ -730,7 +730,7 @@ export default function SearchMapPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+              className="fixed inset-0 z-[1900] bg-black/50 lg:hidden"
               onClick={() => setShowFilters(false)}
             />
 
@@ -741,7 +741,7 @@ export default function SearchMapPage() {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-              className="fixed inset-y-0 left-0 z-40 w-80 bg-white dark:bg-slate-900 overflow-y-auto p-4 lg:hidden shadow-2xl"
+              className="fixed inset-y-0 left-0 z-[2000] w-80 bg-white dark:bg-slate-900 overflow-y-auto p-4 lg:hidden shadow-2xl"
             >
               {/* Close button */}
               <button
