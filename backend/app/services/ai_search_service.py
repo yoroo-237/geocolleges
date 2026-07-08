@@ -17,36 +17,97 @@ from app.schemas.etablissement import SearchFilters
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """Tu es un moteur d'interprétation de requêtes pour une base de données
-d'établissements scolaires à Douala IV, Cameroun.
+SYSTEM_PROMPT = """Tu es un parseur de requêtes pour une base de données d'établissements scolaires \
+à Douala IV (Cameroun). Tu dois extraire des filtres structurés depuis une requête en langage naturel.
 
-Convertis la requête utilisateur en JSON strict avec ces clés (toutes optionnelles, n'inclure que celles mentionnées) :
-- q                 : texte libre résiduel non structuré (uniquement si rien d'autre ne convient)
-- quartier          : nom du quartier mentionné
-- statut            : exactement "Public" ou "Privé"
-- section           : exactement "Francophone", "Anglophone", "Francophone et anglophone" ou "bilingue"
-- cycle             : exactement "premier cycle", "second cycle" ou "premier cycle et second cycle"
-- type_enseignement : "general", "technique" ou "technique/general"
-- filiere           : ex. "Scientifique", "Littéraire", "Technique", "Commerciale"
-- route             : UNE des valeurs exactes : "Route goudronnée", "Route en pavé", "Route en terre"
-  * "goudron", "bitume", "bitumée", "asphalte" → "Route goudronnée"
-  * "pavé", "paved" → "Route en pavé"
-  * "terre", "latérite", "piste" → "Route en terre"
-- moyen_transport   : "bus disponible" si bus présent, "bus non disponible" si absent
-- cantine_scolaire  : "interieur" ou "exterieur" ou "interieur/ exterieur"
-- espace_sportif    : "Dans l'établissement" si présent, "pas d'espace sportif" si absent
-- bus               : true si transport scolaire disponible, false si non disponible
-- cantine           : true si cantine présente
-- sport             : true si espace sportif présent
-- fuzzy             : true UNIQUEMENT si la requête contient des fautes d'orthographe évidentes
+════════════════════════════════════════
+VALEURS EXACTES PRÉSENTES EN BASE DE DONNÉES
+════════════════════════════════════════
 
-Règles importantes :
-- Préfère les champs structurés (route, statut, bus…) au champ q
-- N'inclus q que pour le nom de l'établissement ou des termes qui n'entrent dans aucune autre catégorie
-- "lycée" → cycle "second cycle" (et mets "lycée" dans q pour chercher dans le nom)
-- "collège" → cycle "premier cycle" (et mets "collège" dans q pour chercher dans le nom)
+statut          : "Public" | "Privé"
+section         : "Francophone" | "anglophone" | "Francophone et anglophone"
+cycle_enseignement : "premier cycle" | "premier cycle et second cycle"
+  ⚠ Il n'existe PAS de "second cycle" seul — les lycées ont "premier cycle et second cycle"
+type_enseignement : "general" | "technique/general" | "general/technique"
+route           : "Route goudronnée" | "Route en pavé" | "Route en terre"
+moyen_transport : "bus disponible" | "bus non disponible"
+cantine_scolaire : "interieur" | "exterieur" | "interieur/ exterieur" | "interieur/exterieur"
+espace_sportif  : "Dans l'établissement" | "hors de l'établissement" | "pas d'espace sportif"
 
-Réponds UNIQUEMENT avec l'objet JSON, sans texte ni balises markdown."""
+════════════════════════════════════════
+CHAMPS JSON DISPONIBLES (tous optionnels)
+════════════════════════════════════════
+
+q               → Nom partiel ou terme sans autre catégorie. Ne pas y mettre ce qui a un champ dédié.
+quartier        → Nom du quartier (ex: "Mabanda", "Bojongo", "Bonandale")
+statut          → Utilise exactement "Public" ou "Privé"
+section         → Utilise une des 3 valeurs ci-dessus
+cycle           → "premier cycle" (collège/BEPC) ou "second cycle" (lycée/BAC) ou omets si non mentionné
+                  ⚠ "second cycle" dans ce champ matche "premier cycle et second cycle" via ILIKE
+type_enseignement → "general", "technique/general" ou "general/technique"
+filiere         → "Scientifique", "Littéraire", "Commerciale", "Industrielle"…
+route           → UNE des 3 valeurs exactes (voir mapping ci-dessous)
+bus             → true si l'utilisateur veut un bus, false s'il veut sans bus
+cantine         → true si cantine voulue
+sport           → true si espace sportif voulu
+moyen_transport → N'utilise que si bus/cantine/sport ne suffisent pas
+cantine_scolaire → N'utilise que si tu veux préciser interieur/exterieur
+espace_sportif  → N'utilise que si tu veux préciser l'emplacement
+fuzzy           → true SEULEMENT si la requête contient des fautes d'orthographe évidentes (ex: "licée", "cantime")
+                  NE PAS mettre fuzzy:true pour des requêtes normales en langage naturel
+
+════════════════════════════════════════
+MAPPING LANGAGE NATUREL → CHAMPS
+════════════════════════════════════════
+
+"goudron" / "bitume" / "bitumée" / "asphalté"  → route: "Route goudronnée"
+"pavé" / "pavée"                                → route: "Route en pavé"
+"terre" / "latérite" / "piste" / "non bitumée" → route: "Route en terre"
+"lycée" / "bac" / "terminale"                  → cycle: "second cycle"  +  q: "lycée"
+"collège" / "bepc" / "brevet"                  → cycle: "premier cycle" +  q: "collège"
+"bilingue"                                      → section: "Francophone et anglophone"
+"anglophone" / "english"                        → section: "anglophone"
+"francophone" / "français"                      → section: "Francophone"
+"public"                                        → statut: "Public"
+"privé" / "privée" / "laïc"                    → statut: "Privé"
+"bus" / "transport"                             → bus: true
+"sans bus" / "pas de bus"                       → bus: false
+"cantine" / "restauration"                      → cantine: true
+"sport" / "terrain" / "stade"                   → sport: true
+"technique" / "technicien"                      → type_enseignement: "technique/general"
+"général" / "generale"                          → type_enseignement: "general"
+
+════════════════════════════════════════
+EXEMPLES (few-shot)
+════════════════════════════════════════
+
+Requête: "lycée avec goudron"
+→ {"q": "lycée", "cycle": "second cycle", "route": "Route goudronnée"}
+
+Requête: "collège public avec bus à Mabanda"
+→ {"q": "collège", "cycle": "premier cycle", "statut": "Public", "bus": true, "quartier": "Mabanda"}
+
+Requête: "établissement anglophone privé"
+→ {"statut": "Privé", "section": "anglophone"}
+
+Requête: "lycée bilingue avec cantine et sport"
+→ {"q": "lycée", "cycle": "second cycle", "section": "Francophone et anglophone", "cantine": true, "sport": true}
+
+Requête: "école sur route en terre sans bus"
+→ {"route": "Route en terre", "bus": false}
+
+Requête: "collège technique francophone"
+→ {"q": "collège", "cycle": "premier cycle", "type_enseignement": "technique/general", "section": "Francophone"}
+
+Requête: "lisée publik" (faute d'orthographe)
+→ {"q": "lycée", "cycle": "second cycle", "statut": "Public", "fuzzy": true}
+
+Requête: "Lycée bilingue de bonaberi"
+→ {"q": "lycée bilingue de bonaberi"}
+
+════════════════════════════════════════
+
+RÈGLE ABSOLUE : Réponds UNIQUEMENT avec l'objet JSON. Zéro texte, zéro balise markdown, zéro explication."""
 
 
 def _call_openai_compat(base_url: str, api_key: str, model: str, query: str) -> SearchFilters:
@@ -121,46 +182,63 @@ def _call_anthropic(query: str) -> SearchFilters:
 
 def _local_fallback_parse(query: str) -> SearchFilters:
     q = query.lower()
-    filters = SearchFilters(q=query, fuzzy=True)
+    filters = SearchFilters(fuzzy=False)
 
-    # Statut établissement
+    # Statut
     if "public" in q:
         filters.statut = "Public"
-    elif "privé" in q or "prive" in q:
+    elif any(w in q for w in ("privé", "prive", "laïc", "laic")):
         filters.statut = "Privé"
 
-    # Équipements
+    # Équipements booléens
     if "bus" in q or "transport" in q:
-        filters.bus = "sans bus" not in q and "pas de bus" not in q and "pas de transport" not in q
-    if "cantine" in q or "cantine scolaire" in q:
-        filters.cantine = "sans cantine" not in q and "pas de cantine" not in q
-    if "sport" in q or "terrain" in q or "espace sportif" in q:
-        filters.sport = "sans sport" not in q and "pas d'espace" not in q and "pas de terrain" not in q
+        filters.bus = not any(w in q for w in ("sans bus", "pas de bus", "pas de transport"))
+    if "cantine" in q:
+        filters.cantine = not any(w in q for w in ("sans cantine", "pas de cantine"))
+    if any(w in q for w in ("sport", "terrain", "stade", "espace sportif")):
+        filters.sport = not any(w in q for w in ("sans sport", "pas d'espace", "pas de terrain"))
 
-    # Section
-    if "anglophone" in q or "anglais" in q or "english" in q:
-        filters.section = "Anglophone"
-    elif "francophone" in q or "français" in q or "francais" in q or "french" in q:
+    # Section — valeurs exactes BD
+    if any(w in q for w in ("anglophone", "anglais", "english")):
+        filters.section = "anglophone"
+    elif any(w in q for w in ("francophone", "français", "francais", "french")):
         filters.section = "Francophone"
-    elif "bilingue" in q or "bilingüe" in q:
-        filters.section = "bilingue"
+    elif any(w in q for w in ("bilingue",)):
+        filters.section = "Francophone et anglophone"
 
     # Type d'enseignement
-    if "technique" in q or "technicien" in q:
-        filters.type_enseignement = "technique"
-    elif "général" in q or "general" in q or "générale" in q or "generale" in q:
+    if any(w in q for w in ("technique", "technicien")):
+        filters.type_enseignement = "technique/general"
+    elif any(w in q for w in ("général", "general", "générale", "generale")):
         filters.type_enseignement = "general"
 
-    # Cycles
-    if "lycée" in q or "lycee" in q or "second" in q or "baccalauréat" in q or "baccalaureat" in q:
+    # Cycle
+    if any(w in q for w in ("lycée", "lycee", "bac", "terminale", "baccalauréat")):
         filters.cycle = "second cycle"
-    elif "collège" in q or "college" in q or "premier" in q or "bepc" in q or "brevet" in q:
+        filters.q = "lycée"
+    elif any(w in q for w in ("collège", "college", "bepc", "brevet")):
         filters.cycle = "premier cycle"
+        filters.q = "collège"
 
-    # Quartier - regex pour chercher après "à", "a", "au", "dans"
-    match = re.search(r"\b(?:à|a|au|dans|à|près|pres)\s+([a-zàâäéèêëïîôöùûüç\- ]{3,})", q)
+    # Route — valeurs exactes BD
+    if any(w in q for w in ("goudron", "bitume", "bitumée", "asphalte", "asphalt")):
+        filters.route = "Route goudronnée"
+    elif any(w in q for w in ("pavé", "pave")):
+        filters.route = "Route en pavé"
+    elif any(w in q for w in ("terre", "latérite", "piste")):
+        filters.route = "Route en terre"
+
+    # Quartier — après "à", "au", "dans", "vers"
+    match = re.search(r"\b(?:à|a|au|dans|vers|près de|pres de)\s+([a-zàâäéèêëïîôöùûüç\- ]{3,})", q)
     if match:
         filters.quartier = match.group(1).strip()
+
+    # Si rien n'a été extrait, mettre toute la requête en q
+    if not any([filters.statut, filters.section, filters.cycle, filters.route,
+                filters.type_enseignement, filters.bus, filters.cantine, filters.sport,
+                filters.quartier, filters.filiere]):
+        filters.q = query
+        filters.fuzzy = True
 
     return filters
 
