@@ -7,16 +7,17 @@ import { useAuth } from '@/hooks/useAuth'
 import clsx from 'clsx'
 
 type Tab = 'etablissements' | 'utilisateurs' | 'journal' | 'import' | 'parametres'
+type UserFormData = Partial<User> & { password?: string }
 
 const emptyForm: Partial<Etablissement> = {
   nom: '', statut: 'Public', quartier_nom: '', section: '', cycle_enseignement: '',
   moyen_transport: '', cantine_scolaire: '', espace_sportif: '', filiere: '', route: '', telephone: '',
 }
 
-const emptyUserForm = {
+const emptyUserForm: UserFormData = {
   email: '',
   password: '',
-  role: 'user' as const,
+  role: 'consultation',
 }
 
 export default function AdminPage() {
@@ -109,8 +110,20 @@ function EtablissementsTab() {
                 <td className="px-4 py-2.5">{e.quartier_nom}</td>
                 <td className="px-4 py-2.5">{e.section}</td>
                 <td className="px-4 py-2.5 text-right">
-                  <button onClick={() => setEditing(e)} className="mr-2 rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"><Pencil size={15} /></button>
-                  <button onClick={() => confirm('Supprimer cet établissement ?') && remove.mutate(e.id)} className="rounded-lg p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 cursor-pointer"><Trash2 size={15} /></button>
+                  <button 
+                    onClick={() => setEditing(e)} 
+                    className="mr-2 rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
+                    aria-label="Modifier cet établissement"
+                  >
+                    <Pencil size={15} />
+                  </button>
+                  <button 
+                    onClick={() => confirm('Supprimer cet établissement ?') && remove.mutate(e.id)} 
+                    className="rounded-lg p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 cursor-pointer"
+                    aria-label="Supprimer cet établissement"
+                  >
+                    <Trash2 size={15} />
+                  </button>
                 </td>
               </tr>
             ))}
@@ -123,7 +136,7 @@ function EtablissementsTab() {
           <div className="card max-h-[85vh] w-full max-w-lg overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-bold">{editing.id ? "Modifier l'établissement" : 'Nouvel établissement'}</h2>
-              <button onClick={() => setEditing(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X size={18} /></button>
+              <button onClick={() => setEditing(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer" aria-label="Fermer le formulaire"><X size={18} /></button>
             </div>
             <form
               className="space-y-3"
@@ -136,8 +149,9 @@ function EtablissementsTab() {
                 ['filiere', 'Filière'], ['route', 'Route'], ['telephone', 'Téléphone'],
               ].map(([key, label]) => (
                 <div key={key}>
-                  <label className="mb-1 block text-xs font-semibold text-slate-500">{label}</label>
+                  <label htmlFor={`etab-${key}`} className="mb-1 block text-xs font-semibold text-slate-500">{label}</label>
                   <input
+                    id={`etab-${key}`}
                     className="input"
                     value={(editing as any)[key] ?? ''}
                     onChange={(e) => setEditing({ ...editing, [key]: e.target.value })}
@@ -145,8 +159,13 @@ function EtablissementsTab() {
                 </div>
               ))}
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-500">Statut</label>
-                <select className="input" value={editing.statut} onChange={(e) => setEditing({ ...editing, statut: e.target.value as any })}>
+                <label htmlFor="etab-statut" className="mb-1 block text-xs font-semibold text-slate-500">Statut</label>
+                <select 
+                  id="etab-statut"
+                  className="input" 
+                  value={editing.statut} 
+                  onChange={(e) => setEditing({ ...editing, statut: e.target.value as any })}
+                >
                   <option value="Public">Public</option>
                   <option value="Privé">Privé</option>
                 </select>
@@ -164,7 +183,7 @@ function EtablissementsTab() {
 
 function UtilisateursTab() {
   const qc = useQueryClient()
-  const [editingUser, setEditingUser] = useState<Partial<User> | null>(null)
+  const [editingUser, setEditingUser] = useState<UserFormData | null>(null)
   const { data = [] } = useQuery<User[]>({ queryKey: ['users'], queryFn: async () => (await api.get('/admin/users')).data })
   
   const saveUser = useMutation({
@@ -225,15 +244,16 @@ function UtilisateursTab() {
           <div className="card max-h-[85vh] w-full max-w-lg overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-bold">{editingUser.id ? "Modifier l'utilisateur" : 'Créer un utilisateur'}</h2>
-              <button onClick={() => setEditingUser(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X size={18} /></button>
+              <button onClick={() => setEditingUser(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer" aria-label="Fermer le formulaire"><X size={18} /></button>
             </div>
             <form
               className="space-y-3"
               onSubmit={(e) => { e.preventDefault(); saveUser.mutate(editingUser) }}
             >
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-500">Email</label>
+                <label htmlFor="email-input" className="mb-1 block text-xs font-semibold text-slate-500">Email</label>
                 <input
+                  id="email-input"
                   type="email"
                   className="input"
                   value={(editingUser as any).email ?? ''}
@@ -243,8 +263,9 @@ function UtilisateursTab() {
               </div>
               {!editingUser.id && (
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-500">Mot de passe</label>
+                  <label htmlFor="password-input" className="mb-1 block text-xs font-semibold text-slate-500">Mot de passe</label>
                   <input
+                    id="password-input"
                     type="password"
                     className="input"
                     value={(editingUser as any).password ?? ''}
@@ -254,9 +275,14 @@ function UtilisateursTab() {
                 </div>
               )}
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-500">Rôle</label>
-                <select className="input" value={editingUser.role ?? 'user'} onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value as any })}>
-                  <option value="user">Utilisateur</option>
+                <label htmlFor="role-select" className="mb-1 block text-xs font-semibold text-slate-500">Rôle</label>
+                <select 
+                  id="role-select"
+                  className="input" 
+                  value={editingUser.role ?? 'consultation'} 
+                  onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value as any })}
+                >
+                  <option value="consultation">Utilisateur</option>
                   <option value="gestionnaire">Gestionnaire</option>
                   <option value="admin">Administrateur</option>
                 </select>
