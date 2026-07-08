@@ -226,7 +226,7 @@ DATABASE_URL=$DATABASE_URL python scripts/seed_admin.py
      "rewrites": [
        {
          "source": "/api/:path*",
-         "destination": "https://VOTRE_APP.railway.app/api/:path*"
+         "destination": "https://geocolleges-production.up.railway.app/api/:path*"
        }
      ]
    }
