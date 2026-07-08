@@ -74,10 +74,10 @@ export default function MapPage() {
   }
 
   return (
-    <div className="mx-auto flex h-[calc(100vh-6rem)] max-w-[1600px] gap-4 px-4">
+    <div className="mx-auto flex h-[calc(100dvh-5rem)] sm:h-[calc(100dvh-6rem)] max-w-[1600px] gap-0 lg:gap-4 px-0 lg:px-4">
       {/* SIDEBAR */}
       <aside className={clsx(
-        'fixed lg:static inset-0 lg:inset-auto z-40 lg:z-auto w-80 shrink-0 flex-col gap-4 overflow-y-auto rounded-xl2 border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-card',
+        'fixed lg:static inset-0 lg:inset-auto z-40 lg:z-auto w-4/5 max-w-xs lg:w-80 shrink-0 flex-col gap-4 overflow-y-auto lg:rounded-xl border-r lg:border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-card',
         showSidebar ? 'flex' : 'hidden lg:flex'
       )}>
         {/* Bouton fermeture mobile */}
@@ -178,7 +178,7 @@ export default function MapPage() {
       </aside>
 
       {/* CARTE */}
-      <div className="relative flex-1 overflow-hidden rounded-xl2 border border-slate-200/70 dark:border-slate-800 shadow-card">
+      <div className="relative flex-1 overflow-hidden rounded-none lg:rounded-xl border-0 lg:border border-slate-200/70 dark:border-slate-800 shadow-card">
         <MapContainer center={DOUALA_IV_CENTER} zoom={13} className="h-full w-full" ref={mapRef as any}>
           <LayersControl position="topright">
             <LayersControl.BaseLayer checked name="Plan">
@@ -235,7 +235,7 @@ export default function MapPage() {
 
         <button
           onClick={() => mapRef.current?.getContainer().requestFullscreen?.()}
-          className="absolute bottom-4 right-4 z-[1000] flex h-10 w-10 items-center justify-center rounded-xl bg-white text-slate-600 shadow-popup hover:bg-slate-50 cursor-pointer dark:bg-slate-800 dark:text-slate-200"
+          className="absolute bottom-16 sm:bottom-4 right-4 z-[1000] flex h-10 w-10 items-center justify-center rounded-xl bg-white text-slate-600 shadow-popup hover:bg-slate-50 cursor-pointer dark:bg-slate-800 dark:text-slate-200"
           aria-label="Plein écran"
         >
           <Maximize size={18} />
@@ -259,7 +259,7 @@ export default function MapPage() {
         </div>
 
         {selected && (
-          <div className="glass absolute bottom-4 left-4 z-[1000] w-[calc(100vw-2rem)] max-w-[18rem] rounded-xl p-4 shadow-popup animate-fadeUp">
+          <div className="glass absolute bottom-16 sm:bottom-4 left-2 right-2 sm:left-4 sm:right-auto z-[1000] w-auto sm:w-[calc(100vw-2rem)] max-w-[18rem] rounded-xl p-4 shadow-popup animate-fadeUp">
             <button onClick={() => setSelected(null)} aria-label="Fermer la fiche" className="absolute right-2 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"><X size={16} /></button>
             <p className="pr-4 font-bold">{selected.nom}</p>
             <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500"><MapPin size={12} /> {selected.quartier_nom}</p>
