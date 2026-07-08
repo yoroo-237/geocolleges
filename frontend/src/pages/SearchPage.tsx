@@ -1,0 +1,359 @@
+import { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { Link, useSearchParams } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  Search, SlidersHorizontal, X, ChevronRight,
+  Bus, UtensilsCrossed, Trophy, Phone, MapPin,
+  BookOpen, Layers, Route, RotateCcw,
+} from 'lucide-react'
+import { api } from '@/lib/api'
+import type { Etablissement, SearchFilters, SearchOptions } from '@/types'
+import clsx from 'clsx'
+
+const LIMIT = 20
+
+function Select({
+  label, value, options, onChange, icon: Icon,
+}: {
+  label: string
+  value: string
+  options: string[]
+  onChange: (v: string) => void
+  icon?: React.ElementType
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide flex items-center gap-1">
+        {Icon && <Icon size={12} />} {label}
+      </label>
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer"
+      >
+        <option value="">Tous</option>
+        {options.map(o => (
+          <option key={o} value={o}>{o}</option>
+        ))}
+      </select>
+    </div>
+  )
+}
+
+function Toggle({
+  label, value, onChange, icon: Icon,
+}: {
+  label: string
+  value: boolean | undefined
+  onChange: (v: boolean | undefined) => void
+  icon?: React.ElementType
+}) {
+  const cycle = (cur: boolean | undefined): boolean | undefined => {
+    if (cur === undefined) return true
+    if (cur === true) return false
+    return undefined
+  }
+  const label2 = value === true ? 'Oui' : value === false ? 'Non' : 'Tous'
+  const color = value === true ? 'bg-green-500' : value === false ? 'bg-red-400' : 'bg-slate-300 dark:bg-slate-600'
+
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide flex items-center gap-1">
+        {Icon && <Icon size={12} />} {label}
+      </label>
+      <button
+        type="button"
+        onClick={() => onChange(cycle(value))}
+        className={clsx(
+          'flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-white transition-colors cursor-pointer',
+          color,
+        )}
+      >
+        <span className="h-2 w-2 rounded-full bg-white/70" />
+        {label2}
+      </button>
+    </div>
+  )
+}
+
+function Badge({ children, color = 'slate' }: { children: React.ReactNode; color?: string }) {
+  const colors: Record<string, string> = {
+    green: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
+    red: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+    blue: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+    slate: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+  }
+  return (
+    <span className={clsx('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium', colors[color])}>
+      {children}
+    </span>
+  )
+}
+
+const EMPTY: SearchFilters = {}
+
+export default function SearchPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [filters, setFilters] = useState<SearchFilters>(EMPTY)
+  const [showFilters, setShowFilters] = useState(true)
+  const [page, setPage] = useState(1)
+
+  // Sync depuis URL au montage
+  useEffect(() => {
+    const f: SearchFilters = {}
+    searchParams.forEach((v, k) => {
+      if (k === 'bus' || k === 'cantine' || k === 'sport') (f as any)[k] = v === 'true'
+      else if (k === 'fuzzy') f.fuzzy = v === 'true'
+      else (f as any)[k] = v
+    })
+    setFilters(f)
+  }, [])
+
+  const set = (key: keyof SearchFilters, value: unknown) =>
+    setFilters(prev => ({ ...prev, [key]: value === '' ? undefined : value }))
+
+  const reset = () => { setFilters(EMPTY); setPage(1); setSearchParams({}) }
+
+  const { data: options } = useQuery<SearchOptions>({
+    queryKey: ['search-options'],
+    queryFn: async () => (await api.get('/search/options')).data,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const params = Object.fromEntries(
+    Object.entries({ ...filters, page, limit: LIMIT })
+      .filter(([, v]) => v !== undefined && v !== '' && v !== null)
+      .map(([k, v]) => [k, String(v)])
+  )
+
+  const { data: results, isFetching } = useQuery<Etablissement[]>({
+    queryKey: ['search', params],
+    queryFn: async () => (await api.get('/search', { params })).data,
+    placeholderData: prev => prev,
+  })
+
+  const activeCount = Object.values(filters).filter(v => v !== undefined && v !== '').length
+
+  return (
+    <div className="mx-auto max-w-7xl px-4 pb-24">
+      {/* Header */}
+      <div className="mt-2 mb-6">
+        <h1 className="text-2xl font-extrabold">Recherche d'établissements</h1>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Filtrez par critère — les options disponibles sont issues directement de la base de données.
+        </p>
+      </div>
+
+      <div className="flex gap-6">
+        {/* Panneau filtres */}
+        <AnimatePresence initial={false}>
+          {showFilters && (
+            <motion.aside
+              key="filters"
+              initial={{ opacity: 0, x: -16 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -16 }}
+              transition={{ duration: 0.2 }}
+              className="hidden md:flex flex-col gap-4 w-64 shrink-0"
+            >
+              <div className="card p-4 flex flex-col gap-4 sticky top-24">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-sm">Filtres {activeCount > 0 && <span className="ml-1 rounded-full bg-primary-600 text-white px-1.5 py-0.5 text-xs">{activeCount}</span>}</span>
+                  {activeCount > 0 && (
+                    <button onClick={reset} className="flex items-center gap-1 text-xs text-slate-500 hover:text-red-500 cursor-pointer">
+                      <RotateCcw size={12} /> Réinitialiser
+                    </button>
+                  )}
+                </div>
+
+                {/* Recherche libre */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide flex items-center gap-1">
+                    <Search size={12} /> Recherche libre
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Nom, quartier, filière…"
+                      value={filters.q ?? ''}
+                      onChange={e => set('q', e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                    {filters.q && (
+                      <button onClick={() => set('q', undefined)} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer">
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                  <label className="flex items-center gap-2 text-xs text-slate-500 cursor-pointer mt-1">
+                    <input type="checkbox" checked={!!filters.fuzzy} onChange={e => set('fuzzy', e.target.checked || undefined)} className="rounded" />
+                    Recherche floue (tolère les fautes)
+                  </label>
+                </div>
+
+                {options && (
+                  <>
+                    <Select label="Quartier" value={filters.quartier ?? ''} options={options.quartiers} onChange={v => set('quartier', v)} icon={MapPin} />
+                    <Select label="Statut" value={filters.statut ?? ''} options={options.statuts} onChange={v => set('statut', v)} />
+                    <Select label="Type d'enseignement" value={filters.type_enseignement ?? ''} options={options.types_enseignement} onChange={v => set('type_enseignement', v)} icon={BookOpen} />
+                    <Select label="Section" value={filters.section ?? ''} options={options.sections} onChange={v => set('section', v)} />
+                    <Select label="Cycle" value={filters.cycle ?? ''} options={options.cycles} onChange={v => set('cycle', v)} icon={Layers} />
+                    <Select label="Filière" value={filters.filiere ?? ''} options={options.filieres} onChange={v => set('filiere', v)} />
+                    <Select label="Type de route" value={filters.route ?? ''} options={options.routes} onChange={v => set('route', v)} icon={Route} />
+
+                    <div className="border-t border-slate-100 dark:border-slate-800 pt-3 flex flex-col gap-3">
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Équipements</p>
+                      <Toggle label="Transport scolaire" value={filters.bus} onChange={v => set('bus', v)} icon={Bus} />
+                      <Toggle label="Cantine scolaire" value={filters.cantine} onChange={v => set('cantine', v)} icon={UtensilsCrossed} />
+                      <Toggle label="Espace sportif" value={filters.sport} onChange={v => set('sport', v)} icon={Trophy} />
+                    </div>
+                  </>
+                )}
+              </div>
+            </motion.aside>
+          )}
+        </AnimatePresence>
+
+        {/* Résultats */}
+        <div className="flex-1 min-w-0">
+          {/* Barre d'actions */}
+          <div className="flex items-center gap-3 mb-4">
+            <button
+              onClick={() => setShowFilters(s => !s)}
+              className="hidden md:flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+            >
+              <SlidersHorizontal size={16} />
+              {showFilters ? 'Masquer' : 'Afficher'} les filtres
+            </button>
+            <span className="text-sm text-slate-500 dark:text-slate-400">
+              {isFetching ? (
+                <span className="animate-pulse">Recherche…</span>
+              ) : (
+                <>{results?.length ?? 0} résultat{(results?.length ?? 0) !== 1 ? 's' : ''}</>
+              )}
+            </span>
+          </div>
+
+          {/* Filtres actifs (chips) */}
+          {activeCount > 0 && (
+            <div className="flex flex-wrap gap-2 mb-4">
+              {Object.entries(filters).map(([k, v]) => {
+                if (v === undefined || v === '') return null
+                const label = k === 'q' ? `"${v}"` : k === 'bus' ? (v ? 'Avec bus' : 'Sans bus') : k === 'cantine' ? (v ? 'Avec cantine' : 'Sans cantine') : k === 'sport' ? (v ? 'Avec sport' : 'Sans sport') : k === 'fuzzy' ? 'Floue' : String(v)
+                return (
+                  <button
+                    key={k}
+                    onClick={() => set(k as keyof SearchFilters, undefined)}
+                    className="flex items-center gap-1 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 px-3 py-1 text-xs font-medium hover:bg-primary-100 cursor-pointer transition-colors"
+                  >
+                    {label} <X size={11} />
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Cards résultats */}
+          <div className="flex flex-col gap-3">
+            <AnimatePresence mode="popLayout">
+              {results?.map((e, i) => (
+                <motion.div
+                  key={e.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ delay: i * 0.03 }}
+                >
+                  <Link
+                    to={`/etablissement/${e.id}`}
+                    className="card flex items-start justify-between gap-4 p-4 hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-md transition-all duration-200 group block"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start gap-2 flex-wrap">
+                        <h3 className="font-bold text-slate-800 dark:text-slate-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                          {e.nom}
+                        </h3>
+                        <Badge color={e.statut === 'Public' ? 'blue' : 'green'}>{e.statut}</Badge>
+                      </div>
+
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {e.quartier_nom && (
+                          <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                            <MapPin size={11} /> {e.quartier_nom}
+                          </span>
+                        )}
+                        {e.type_enseignement && <Badge>{e.type_enseignement}</Badge>}
+                        {e.section && <Badge>{e.section}</Badge>}
+                        {e.cycle_enseignement && <Badge>{e.cycle_enseignement}</Badge>}
+                        {e.filiere && <Badge>{e.filiere}</Badge>}
+                        {e.route && (
+                          <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                            <Route size={11} /> {e.route}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mt-2 flex gap-3">
+                        {e.moyen_transport && (
+                          <span className={clsx('flex items-center gap-1 text-xs font-medium', e.moyen_transport.includes('non') ? 'text-slate-400' : 'text-green-600 dark:text-green-400')}>
+                            <Bus size={12} /> {e.moyen_transport.includes('non') ? 'Pas de bus' : 'Bus dispo'}
+                          </span>
+                        )}
+                        {e.cantine_scolaire && (
+                          <span className="flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400">
+                            <UtensilsCrossed size={12} /> Cantine
+                          </span>
+                        )}
+                        {e.espace_sportif && !e.espace_sportif.toLowerCase().startsWith("pas") && (
+                          <span className="flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400">
+                            <Trophy size={12} /> Sport
+                          </span>
+                        )}
+                        {e.telephone && (
+                          <span className="flex items-center gap-1 text-xs text-slate-400">
+                            <Phone size={11} /> {e.telephone}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <ChevronRight size={18} className="shrink-0 text-slate-300 group-hover:text-primary-500 transition-colors mt-1" />
+                  </Link>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+
+            {results?.length === 0 && !isFetching && (
+              <div className="card p-12 text-center text-slate-400">
+                <Search size={36} className="mx-auto mb-3 opacity-30" />
+                <p className="font-medium">Aucun établissement trouvé</p>
+                <p className="text-sm mt-1">Essayez d'élargir vos critères ou d'activer la recherche floue.</p>
+              </div>
+            )}
+          </div>
+
+          {/* Pagination */}
+          {(results?.length === LIMIT || page > 1) && (
+            <div className="mt-6 flex items-center justify-center gap-3">
+              <button
+                disabled={page === 1}
+                onClick={() => setPage(p => p - 1)}
+                className="rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-2 text-sm font-medium disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors disabled:cursor-not-allowed"
+              >
+                Précédent
+              </button>
+              <span className="text-sm text-slate-500">Page {page}</span>
+              <button
+                disabled={!results || results.length < LIMIT}
+                onClick={() => setPage(p => p + 1)}
+                className="rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-2 text-sm font-medium disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors disabled:cursor-not-allowed"
+              >
+                Suivant
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

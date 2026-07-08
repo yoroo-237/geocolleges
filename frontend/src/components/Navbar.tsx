@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Map, LayoutDashboard, Home, Sun, Moon, LogOut, ShieldCheck, Menu, X } from 'lucide-react'
+import { Map, LayoutDashboard, Home, Sun, Moon, LogOut, ShieldCheck, Menu, X, Search } from 'lucide-react'
 import { useState } from 'react'
 import { useTheme } from '@/hooks/useTheme'
 import { useAuth } from '@/hooks/useAuth'
@@ -7,6 +7,7 @@ import clsx from 'clsx'
 
 const links = [
   { to: '/', label: 'Accueil', icon: Home },
+  { to: '/recherche', label: 'Recherche', icon: Search },
   { to: '/carte', label: 'Carte', icon: Map },
   { to: '/statistiques', label: 'Statistiques', icon: LayoutDashboard },
   { to: '/a-propos', label: 'À propos', icon: ShieldCheck },
@@ -22,9 +23,7 @@ export default function Navbar() {
     <header className="sticky top-4 z-50 mx-4">
       <nav className="glass mx-auto flex max-w-7xl items-center justify-between rounded-2xl px-4 py-2.5 shadow-card">
         <NavLink to="/" className="flex items-center gap-2 font-extrabold text-lg tracking-tight">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600 text-white">
-            <Map size={18} />
-          </span>
+          <img src="/logo.png" alt="GeoColleges" className="h-8 w-8 rounded-lg object-contain" />
           <span className="hidden sm:inline">GeoColleges</span>
           <span className="hidden sm:inline text-primary-600">IV</span>
         </NavLink>

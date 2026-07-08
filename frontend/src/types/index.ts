@@ -19,17 +19,34 @@ export interface Etablissement {
 
 export interface SearchFilters {
   q?: string
+  nom?: string
   quartier?: string
+  statut?: string
+  type_enseignement?: string
   section?: string
   cycle?: string
-  statut?: string
+  filiere?: string
   route?: string
+  telephone?: string
   bus?: boolean
   cantine?: boolean
   sport?: boolean
-  filiere?: string
-  type_enseignement?: string
   fuzzy?: boolean
+  page?: number
+  limit?: number
+}
+
+export interface SearchOptions {
+  quartiers: string[]
+  statuts: string[]
+  types_enseignement: string[]
+  sections: string[]
+  cycles: string[]
+  filieres: string[]
+  routes: string[]
+  espaces_sportifs: string[]
+  moyens_transport: string[]
+  cantines: string[]
 }
 
 export interface User {

@@ -1,12 +1,37 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy import distinct
 
 from app.core.database import get_db
 from app.schemas.etablissement import EtablissementOut, SearchFilters
 from app.services.search_service import apply_filters, paginate, levenshtein_best_matches
 from app.services.ai_search_service import parse_natural_language_query
+from app.models.etablissement import Etablissement, Quartier
 
 router = APIRouter(prefix="/api", tags=["search"])
+
+
+def _distinct(db: Session, col):
+    return sorted(
+        r[0] for r in db.query(distinct(col)).filter(col.isnot(None), col != "").all()
+    )
+
+
+@router.get("/search/options")
+def search_options(db: Session = Depends(get_db)):
+    """Retourne les valeurs distinctes présentes en BD pour chaque critère de recherche."""
+    return {
+        "quartiers":          _distinct(db, Etablissement.quartier_nom),
+        "statuts":            _distinct(db, Etablissement.statut),
+        "types_enseignement": _distinct(db, Etablissement.type_enseignement),
+        "sections":           _distinct(db, Etablissement.section),
+        "cycles":             _distinct(db, Etablissement.cycle_enseignement),
+        "filieres":           _distinct(db, Etablissement.filiere),
+        "routes":             _distinct(db, Etablissement.route),
+        "espaces_sportifs":   _distinct(db, Etablissement.espace_sportif),
+        "moyens_transport":   _distinct(db, Etablissement.moyen_transport),
+        "cantines":           _distinct(db, Etablissement.cantine_scolaire),
+    }
 
 
 @router.get("/search", response_model=list[EtablissementOut])

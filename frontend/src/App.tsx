@@ -3,6 +3,7 @@ import Navbar from '@/components/Navbar'
 import Home from '@/pages/Home'
 import MapPage from '@/pages/MapPage'
 import StatisticsPage from '@/pages/StatisticsPage'
+import SearchPage from '@/pages/SearchPage'
 import CollegeDetail from '@/pages/CollegeDetail'
 import Login from '@/pages/Login'
 import AdminPage from '@/pages/AdminPage'
@@ -16,6 +17,7 @@ export default function App() {
       <main className="mt-6">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/recherche" element={<SearchPage />} />
           <Route path="/carte" element={<MapPage />} />
           <Route path="/statistiques" element={<StatisticsPage />} />
           <Route path="/etablissement/:id" element={<CollegeDetail />} />
