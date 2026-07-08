@@ -111,13 +111,52 @@ Documentation interactive complète : `http://localhost:8000/docs` (Swagger UI).
 
 ### Backend — Railway
 
+#### Option A — Déploiement depuis GitHub (recommandé)
+
 1. Créer un nouveau projet sur [railway.app](https://railway.app)
-2. Ajouter un service **PostgreSQL** (avec l'extension PostGIS activée via la console SQL)
-3. Connecter le dépôt GitHub et sélectionner le dossier **`backend/`** comme root du service
-4. Railway détecte automatiquement `railway.toml` et lance :
+2. Cliquer **New Service → GitHub Repo** → sélectionner `yoroo-237/geocolleges`
+3. Dans les paramètres du service, définir **Root Directory** → `backend`
+4. Railway détecte `railway.toml` et lance automatiquement :
    ```
    uvicorn app.main:app --host 0.0.0.0 --port $PORT
    ```
+5. Chaque `git push origin main` redéploie automatiquement.
+
+#### Option B — Déploiement via Railway CLI
+
+```bash
+# Installer le CLI Railway
+npm install -g @railway/cli
+
+# Se connecter
+railway login
+
+# Lier le projet (depuis la racine du dépôt)
+railway link
+
+# Déployer le backend
+cd backend
+railway up
+
+# Voir les logs en direct
+railway logs
+```
+
+#### Ajouter PostgreSQL
+
+Dans le tableau de bord Railway :
+1. **New Service → Database → PostgreSQL**
+2. Une fois créé, ouvrir la console SQL et activer les extensions :
+   ```sql
+   CREATE EXTENSION IF NOT EXISTS postgis;
+   CREATE EXTENSION IF NOT EXISTS pg_trgm;
+   CREATE EXTENSION IF NOT EXISTS unaccent;
+   CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+   ```
+3. La variable `DATABASE_URL` est injectée automatiquement dans le service backend.
+
+#### Variables d'environnement Railway
+
 5. Configurer les variables d'environnement dans Railway :
 
    | Variable               | Valeur                                              |
@@ -129,22 +168,23 @@ Documentation interactive complète : `http://localhost:8000/docs` (Swagger UI).
    | `SEED_ADMIN_PASSWORD`  | Mot de passe fort pour le compte admin               |
    | `CORS_EXTRA_ORIGINS`   | URL Vercel du frontend (ex: `https://geocolleges.vercel.app`) |
 
-6. Après le premier déploiement, initialiser la base :
-   ```bash
-   # Via la console Railway ou en local avec la DATABASE_URL Railway
-   psql $DATABASE_URL -f database/schema.sql
-   python scripts/import_csv.py --csv database/donne_es_att_be_ri.csv
-   python scripts/seed_admin.py
-   ```
+#### Initialiser la base après le premier déploiement
 
-> **Note PostGIS** : Railway PostgreSQL n'inclut pas PostGIS par défaut. Activer via la console SQL :
-> ```sql
-> CREATE EXTENSION IF NOT EXISTS postgis;
-> CREATE EXTENSION IF NOT EXISTS pg_trgm;
-> CREATE EXTENSION IF NOT EXISTS unaccent;
-> CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-> ```
-> Ou utiliser [Supabase](https://supabase.com) qui inclut PostGIS nativement.
+```bash
+# Récupérer la DATABASE_URL Railway en local
+railway variables --service <nom-service-postgres>
+
+# Appliquer le schéma
+psql $DATABASE_URL -f database/schema.sql
+
+# Importer les données CSV
+DATABASE_URL=$DATABASE_URL python scripts/import_csv.py --csv database/donne_es_att_be_ri.csv
+
+# Créer le compte admin
+DATABASE_URL=$DATABASE_URL python scripts/seed_admin.py
+```
+
+> **Supabase** inclut PostGIS nativement et est une alternative clé-en-main à Railway PostgreSQL.
 
 ---
 
