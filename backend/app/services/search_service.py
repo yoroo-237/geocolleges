@@ -89,12 +89,12 @@ def apply_filters(db: Session, f: SearchFilters):
             q_norm = func.unaccent(f.q.lower())
             query = query.filter(
                 or_(
-                    func.similarity(func.unaccent(func.lower(Etablissement.nom)), q_norm) > 0.15,
-                    func.similarity(func.unaccent(func.lower(func.coalesce(Etablissement.quartier_nom, ""))), q_norm) > 0.15,
-                    func.similarity(func.unaccent(func.lower(func.coalesce(Etablissement.filiere, ""))), q_norm) > 0.15,
-                    func.similarity(func.unaccent(func.lower(func.coalesce(Etablissement.type_enseignement, ""))), q_norm) > 0.15,
-                    func.similarity(func.unaccent(func.lower(func.coalesce(Etablissement.section, ""))), q_norm) > 0.15,
-                    func.similarity(func.unaccent(func.lower(func.coalesce(Etablissement.cycle_enseignement, ""))), q_norm) > 0.15,
+                    func.similarity(func.unaccent(func.lower(Etablissement.nom)), q_norm) > 0.3,
+                    func.similarity(func.unaccent(func.lower(func.coalesce(Etablissement.quartier_nom, ""))), q_norm) > 0.3,
+                    func.similarity(func.unaccent(func.lower(func.coalesce(Etablissement.filiere, ""))), q_norm) > 0.3,
+                    func.similarity(func.unaccent(func.lower(func.coalesce(Etablissement.type_enseignement, ""))), q_norm) > 0.3,
+                    func.similarity(func.unaccent(func.lower(func.coalesce(Etablissement.section, ""))), q_norm) > 0.3,
+                    func.similarity(func.unaccent(func.lower(func.coalesce(Etablissement.cycle_enseignement, ""))), q_norm) > 0.3,
                 )
             ).order_by(
                 func.similarity(func.unaccent(func.lower(Etablissement.nom)), q_norm).desc()

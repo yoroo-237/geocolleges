@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import distinct
@@ -8,6 +10,7 @@ from app.services.search_service import apply_filters, paginate, levenshtein_bes
 from app.services.ai_search_service import parse_natural_language_query
 from app.models.etablissement import Etablissement, Quartier
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["search"])
 
 
@@ -104,6 +107,7 @@ def search_ai(
     Utilise Claude API si une clé est configurée, sinon fallback local automatique.
     """
     filters = parse_natural_language_query(query)
+    logger.info(f"AI search '{query}' → filters: {filters.model_dump(exclude_none=True)}")
     filters.page = page
     filters.limit = limit
     results = paginate(apply_filters(db, filters), page, limit)

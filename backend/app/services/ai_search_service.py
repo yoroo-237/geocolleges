@@ -21,21 +21,30 @@ SYSTEM_PROMPT = """Tu es un moteur d'interprétation de requêtes pour une base 
 d'établissements scolaires à Douala IV, Cameroun.
 
 Convertis la requête utilisateur en JSON strict avec ces clés (toutes optionnelles, n'inclure que celles mentionnées) :
-- q           : texte libre résiduel non structuré
-- quartier    : nom du quartier
-- statut      : "Public" ou "Privé"
-- section     : "Francophone", "Anglophone" ou "bilingue"
-- cycle       : contient "premier cycle" et/ou "second cycle"
-- type_enseignement : "general" ou "technique"
-- filiere     : ex. "Scientifique", "Littéraire", "Technique"
-- route       : type de route (bitumée, terre…)
-- moyen_transport   : valeur exacte de transport (ex: "bus disponible")
-- cantine_scolaire  : valeur exacte de cantine (ex: "interieur")
-- espace_sportif    : valeur exacte d'espace sportif
-- bus         : true si transport scolaire disponible, false si non disponible
-- cantine     : true si cantine présente
-- sport       : true si espace sportif présent
-- fuzzy       : true si la requête semble approximative ou contient des fautes
+- q                 : texte libre résiduel non structuré (uniquement si rien d'autre ne convient)
+- quartier          : nom du quartier mentionné
+- statut            : exactement "Public" ou "Privé"
+- section           : exactement "Francophone", "Anglophone", "Francophone et anglophone" ou "bilingue"
+- cycle             : exactement "premier cycle", "second cycle" ou "premier cycle et second cycle"
+- type_enseignement : "general", "technique" ou "technique/general"
+- filiere           : ex. "Scientifique", "Littéraire", "Technique", "Commerciale"
+- route             : UNE des valeurs exactes : "Route goudronnée", "Route en pavé", "Route en terre"
+  * "goudron", "bitume", "bitumée", "asphalte" → "Route goudronnée"
+  * "pavé", "paved" → "Route en pavé"
+  * "terre", "latérite", "piste" → "Route en terre"
+- moyen_transport   : "bus disponible" si bus présent, "bus non disponible" si absent
+- cantine_scolaire  : "interieur" ou "exterieur" ou "interieur/ exterieur"
+- espace_sportif    : "Dans l'établissement" si présent, "pas d'espace sportif" si absent
+- bus               : true si transport scolaire disponible, false si non disponible
+- cantine           : true si cantine présente
+- sport             : true si espace sportif présent
+- fuzzy             : true UNIQUEMENT si la requête contient des fautes d'orthographe évidentes
+
+Règles importantes :
+- Préfère les champs structurés (route, statut, bus…) au champ q
+- N'inclus q que pour le nom de l'établissement ou des termes qui n'entrent dans aucune autre catégorie
+- "lycée" → cycle "second cycle" (et mets "lycée" dans q pour chercher dans le nom)
+- "collège" → cycle "premier cycle" (et mets "collège" dans q pour chercher dans le nom)
 
 Réponds UNIQUEMENT avec l'objet JSON, sans texte ni balises markdown."""
 
