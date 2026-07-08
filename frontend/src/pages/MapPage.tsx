@@ -4,7 +4,7 @@ import MarkerClusterGroup from '@/components/MarkerClusterGroup'
 import L from 'leaflet'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import { Search, Bus, UtensilsCrossed, Trophy, MapPin, Locate, Maximize, X, Phone, Route as RouteIcon } from 'lucide-react'
+import { Search, Bus, UtensilsCrossed, Trophy, MapPin, Locate, Maximize, X, Phone, Route as RouteIcon, Menu } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import clsx from 'clsx'
 import type { Etablissement } from '@/types'
@@ -33,6 +33,7 @@ export default function MapPage() {
   const [filters, setFilters] = useState<{ statut?: string; bus?: boolean; cantine?: boolean; sport?: boolean; section?: string }>({})
   const [selected, setSelected] = useState<Etablissement | null>(null)
   const [userPos, setUserPos] = useState<[number, number] | null>(null)
+  const [showSidebar, setShowSidebar] = useState(false)
   const mapRef = useRef<L.Map | null>(null)
 
   const params = useMemo(() => {
@@ -75,7 +76,19 @@ export default function MapPage() {
   return (
     <div className="mx-auto flex h-[calc(100vh-6rem)] max-w-[1600px] gap-4 px-4">
       {/* SIDEBAR */}
-      <aside className="hidden w-80 shrink-0 flex-col gap-4 overflow-y-auto rounded-xl2 border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-card lg:flex">
+      <aside className={clsx(
+        'fixed lg:static inset-0 lg:inset-auto z-40 lg:z-auto w-80 shrink-0 flex-col gap-4 overflow-y-auto rounded-xl2 border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-card',
+        showSidebar ? 'flex' : 'hidden lg:flex'
+      )}>
+        {/* Bouton fermeture mobile */}
+        <button 
+          onClick={() => setShowSidebar(false)}
+          className="lg:hidden absolute top-4 right-4 text-slate-400 hover:text-slate-600 cursor-pointer"
+          aria-label="Fermer les filtres"
+        >
+          <X size={20} />
+        </button>
+
         <div>
           <label className="mb-1.5 block text-xs font-semibold text-slate-500">Recherche</label>
           <div className="relative">
@@ -110,8 +123,9 @@ export default function MapPage() {
         </div>
 
         <div>
-          <label className="mb-1.5 block text-xs font-semibold text-slate-500">Section</label>
+          <label htmlFor="section-select" className="mb-1.5 block text-xs font-semibold text-slate-500">Section</label>
           <select
+            id="section-select"
             className="input"
             value={filters.section ?? ''}
             onChange={(e) => setFilters((f) => ({ ...f, section: e.target.value || undefined }))}
@@ -211,12 +225,28 @@ export default function MapPage() {
           <FlyTo position={selected && selected.latitude && selected.longitude ? [selected.latitude, selected.longitude] : userPos} />
         </MapContainer>
 
+        {/* Overlay backdrop mobile */}
+        {showSidebar && (
+          <div 
+            onClick={() => setShowSidebar(false)}
+            className="lg:hidden fixed inset-0 bg-black/40 z-30"
+          />
+        )}
+
         <button
           onClick={() => mapRef.current?.getContainer().requestFullscreen?.()}
           className="absolute bottom-4 right-4 z-[1000] flex h-10 w-10 items-center justify-center rounded-xl bg-white text-slate-600 shadow-popup hover:bg-slate-50 cursor-pointer dark:bg-slate-800 dark:text-slate-200"
           aria-label="Plein écran"
         >
           <Maximize size={18} />
+        </button>
+
+        <button
+          onClick={() => setShowSidebar(true)}
+          className="lg:hidden absolute top-4 left-4 z-[1000] flex h-10 w-10 items-center justify-center rounded-xl bg-white text-slate-600 shadow-popup hover:bg-slate-50 cursor-pointer dark:bg-slate-800 dark:text-slate-200"
+          aria-label="Afficher les filtres"
+        >
+          <Menu size={18} />
         </button>
 
         {/* Légende */}
@@ -228,7 +258,7 @@ export default function MapPage() {
 
         {selected && (
           <div className="glass absolute bottom-4 left-4 z-[1000] w-72 rounded-xl p-4 shadow-popup animate-fadeUp">
-            <button onClick={() => setSelected(null)} className="absolute right-2 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"><X size={16} /></button>
+            <button onClick={() => setSelected(null)} aria-label="Fermer la fiche" className="absolute right-2 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"><X size={16} /></button>
             <p className="pr-4 font-bold">{selected.nom}</p>
             <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500"><MapPin size={12} /> {selected.quartier_nom}</p>
             {selected.telephone && <p className="mt-1 flex items-center gap-1 text-xs text-slate-500"><Phone size={12} /> {selected.telephone}</p>}

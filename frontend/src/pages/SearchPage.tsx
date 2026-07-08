@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, SlidersHorizontal, X, ChevronRight,
   Bus, UtensilsCrossed, Trophy, Phone, MapPin,
-  BookOpen, Layers, Route, RotateCcw, Sparkles,
+  BookOpen, Layers, Route, RotateCcw, Sparkles, Menu,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import type { Etablissement, SearchFilters, SearchOptions } from '@/types'
@@ -24,10 +24,11 @@ function Select({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide flex items-center gap-1">
+      <label id={`select-${label}`} className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide flex items-center gap-1">
         {Icon && <Icon size={12} />} {label}
       </label>
       <select
+        aria-labelledby={`select-${label}`}
         value={value}
         onChange={e => onChange(e.target.value)}
         className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer"
@@ -131,6 +132,7 @@ export default function SearchPage() {
           <button
             type="button"
             onClick={() => setAiMode(m => !m)}
+            aria-label="Activer la recherche IA"
             className={clsx(
               'flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer',
               aiMode
@@ -194,7 +196,7 @@ export default function SearchPage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -16 }}
               transition={{ duration: 0.2 }}
-              className="hidden md:flex flex-col gap-4 w-72 shrink-0"
+              className="fixed md:static inset-0 md:inset-auto z-40 md:z-auto md:flex flex-col gap-4 w-full md:w-72 shrink-0"
             >
               <div className="card p-4 flex flex-col gap-4 sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto">
                 <div className="flex items-center justify-between">
@@ -203,11 +205,21 @@ export default function SearchPage() {
                       <span className="ml-1.5 rounded-full bg-primary-600 text-white px-1.5 py-0.5 text-xs">{activeCount}</span>
                     )}
                   </span>
-                  {activeCount > 0 && (
-                    <button onClick={reset} className="flex items-center gap-1 text-xs text-slate-500 hover:text-red-500 cursor-pointer">
-                      <RotateCcw size={12} /> Réinitialiser
+                  <div className="flex items-center gap-2">
+                    {activeCount > 0 && (
+                      <button onClick={reset} className="flex items-center gap-1 text-xs text-slate-500 hover:text-red-500 cursor-pointer">
+                        <RotateCcw size={12} /> Réinitialiser
+                      </button>
+                    )}
+                    {/* Bouton fermeture mobile */}
+                    <button 
+                      onClick={() => setShowFilters(false)}
+                      className="md:hidden text-slate-400 hover:text-slate-600 cursor-pointer"
+                      aria-label="Fermer les filtres"
+                    >
+                      <X size={20} />
                     </button>
-                  )}
+                  </div>
                 </div>
 
                 {/* Recherche libre */}
@@ -224,7 +236,11 @@ export default function SearchPage() {
                       className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                     />
                     {filters.q && (
-                      <button onClick={() => set('q', undefined)} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer">
+                      <button 
+                        onClick={() => set('q', undefined)} 
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
+                        aria-label="Effacer la recherche"
+                      >
                         <X size={14} />
                       </button>
                     )}
@@ -324,16 +340,26 @@ export default function SearchPage() {
           )}
         </AnimatePresence>
 
+        {/* Overlay backdrop mobile */}
+        {showFilters && (
+          <div 
+            onClick={() => setShowFilters(false)}
+            className="md:hidden fixed inset-0 bg-black/40 z-30"
+          />
+        )}
+
         {/* Résultats */}
         <div className="flex-1 min-w-0">
           {/* Barre d'actions */}
           <div className="flex items-center gap-3 mb-4">
             <button
               onClick={() => setShowFilters(s => !s)}
-              className="hidden md:flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+              className="flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
             >
               <SlidersHorizontal size={16} />
-              {showFilters ? 'Masquer' : 'Filtres'}
+              <span className="hidden md:inline">
+                {showFilters ? 'Masquer' : 'Filtres'}
+              </span>
               {!showFilters && activeCount > 0 && (
                 <span className="rounded-full bg-primary-600 text-white px-1.5 py-0.5 text-xs">{activeCount}</span>
               )}
@@ -378,7 +404,7 @@ export default function SearchPage() {
                 >
                   <Link
                     to={`/etablissement/${e.id}`}
-                    className="card flex items-start justify-between gap-4 p-4 hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-md transition-all duration-200 group block"
+                    className="card flex items-start justify-between gap-4 p-4 hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-md transition-all duration-200 group"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start gap-2 flex-wrap">
