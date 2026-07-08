@@ -82,13 +82,21 @@ export default function SearchPage() {
   const [page, setPage] = useState(1)
   const [aiMode, setAiMode] = useState(false)
   const [aiQuery, setAiQuery] = useState('')
+  const [submittedAiQuery, setSubmittedAiQuery] = useState('')
 
   useEffect(() => { setPage(1) }, [filters, aiMode, aiQuery])
 
   const set = (key: keyof SearchFilters, value: unknown) =>
     setFilters(prev => ({ ...prev, [key]: value === '' ? undefined : value }))
 
-  const reset = () => { setFilters(EMPTY); setAiQuery(''); setPage(1); setSearchParams({}) }
+  const reset = () => { setFilters(EMPTY); setAiQuery(''); setSubmittedAiQuery(''); setPage(1); setSearchParams({}) }
+
+  const runAiSearch = () => {
+    const trimmed = aiQuery.trim()
+    if (!trimmed) return
+    setSubmittedAiQuery(trimmed)
+    setPage(1)
+  }
 
   const { data: options } = useQuery<SearchOptions>({
     queryKey: ['search-options'],
@@ -103,14 +111,14 @@ export default function SearchPage() {
   )
 
   const { data: results, isFetching } = useQuery<Etablissement[]>({
-    queryKey: aiMode ? ['search-ai', aiQuery, page] : ['search', params],
+    queryKey: aiMode ? ['search-ai', submittedAiQuery, page] : ['search', params],
     queryFn: async () => {
-      if (aiMode && aiQuery.trim()) {
-        return (await api.get('/search/ai', { params: { query: aiQuery, page, limit: LIMIT } })).data
+      if (aiMode && submittedAiQuery) {
+        return (await api.get('/search/ai', { params: { query: submittedAiQuery, page, limit: LIMIT } })).data
       }
       return (await api.get('/search', { params })).data
     },
-    enabled: aiMode ? aiQuery.trim().length > 0 : true,
+    enabled: aiMode ? Boolean(submittedAiQuery) : true,
     placeholderData: prev => prev,
   })
 
@@ -165,19 +173,33 @@ export default function SearchPage() {
               placeholder='Ex : "lycée public avec bus et cantine à Mabanda" ou "collège bilingue technique"'
               value={aiQuery}
               onChange={e => setAiQuery(e.target.value)}
-              className="w-full rounded-xl border-2 border-violet-300 dark:border-violet-700 bg-white dark:bg-slate-900 pl-9 pr-10 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 placeholder:text-slate-400"
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  runAiSearch()
+                }
+              }}
+              className="w-full rounded-xl border-2 border-violet-300 dark:border-violet-700 bg-white dark:bg-slate-900 pl-9 pr-24 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 placeholder:text-slate-400"
             />
             {aiQuery && (
               <button
                 type="button"
                 aria-label="Effacer la recherche"
                 onClick={() => setAiQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
+                className="absolute right-20 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
               >
                 <X size={15} />
               </button>
             )}
-            {isFetching && aiQuery && (
+            <button
+              type="button"
+              onClick={runAiSearch}
+              disabled={!aiQuery.trim() || isFetching}
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-violet-300"
+            >
+              {isFetching ? '…' : 'Rechercher'}
+            </button>
+            {isFetching && submittedAiQuery && (
               <p className="mt-1.5 text-xs text-violet-500 animate-pulse flex items-center gap-1">
                 <Sparkles size={11} /> DeepSeek interprète votre requête…
               </p>
