@@ -259,7 +259,7 @@ export default function MapPage() {
         </div>
 
         {selected && (
-          <div className="glass absolute bottom-4 left-4 z-[1000] w-72 rounded-xl p-4 shadow-popup animate-fadeUp">
+          <div className="glass absolute bottom-4 left-4 z-[1000] w-[calc(100vw-2rem)] max-w-[18rem] rounded-xl p-4 shadow-popup animate-fadeUp">
             <button onClick={() => setSelected(null)} aria-label="Fermer la fiche" className="absolute right-2 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"><X size={16} /></button>
             <p className="pr-4 font-bold">{selected.nom}</p>
             <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500"><MapPin size={12} /> {selected.quartier_nom}</p>

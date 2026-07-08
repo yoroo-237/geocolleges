@@ -30,7 +30,7 @@ export default function StatisticsPage() {
       <div className="mb-6 mt-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold">Tableau de bord</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Statistiques calculées en direct depuis PostGIS.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Statistiques calculées en direct depuis la base de données.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {exportFormats.map((fmt) => (

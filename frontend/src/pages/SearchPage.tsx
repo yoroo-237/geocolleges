@@ -78,18 +78,30 @@ const FILTER_LABELS: Record<string, string> = {
 export default function SearchPage() {
   const [, setSearchParams] = useSearchParams()
   const [filters, setFilters] = useState<SearchFilters>(EMPTY)
-  const [showFilters, setShowFilters] = useState(true)
+  const [showFilters, setShowFilters] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768)
   const [page, setPage] = useState(1)
   const [aiMode, setAiMode] = useState(false)
   const [aiQuery, setAiQuery] = useState('')
   const [submittedAiQuery, setSubmittedAiQuery] = useState('')
+  const [submittedFilters, setSubmittedFilters] = useState<SearchFilters>(EMPTY)
 
-  useEffect(() => { setPage(1) }, [filters, aiMode, aiQuery])
+  useEffect(() => { setPage(1) }, [submittedFilters, aiMode, submittedAiQuery])
 
   const set = (key: keyof SearchFilters, value: unknown) =>
     setFilters(prev => ({ ...prev, [key]: value === '' ? undefined : value }))
 
-  const reset = () => { setFilters(EMPTY); setAiQuery(''); setSubmittedAiQuery(''); setPage(1); setSearchParams({}) }
+  const reset = () => {
+    setFilters(EMPTY); setSubmittedFilters(EMPTY)
+    setAiQuery(''); setSubmittedAiQuery('')
+    setPage(1); setSearchParams({})
+  }
+
+  const runSearch = () => { setSubmittedFilters(filters); setPage(1) }
+
+  const removeSubmittedFilter = (key: keyof SearchFilters) => {
+    setFilters(prev => { const n = { ...prev }; delete n[key]; return n })
+    setSubmittedFilters(prev => { const n = { ...prev }; delete n[key]; return n })
+  }
 
   const runAiSearch = () => {
     const trimmed = aiQuery.trim()
@@ -105,7 +117,7 @@ export default function SearchPage() {
   })
 
   const params = Object.fromEntries(
-    Object.entries({ ...filters, page, limit: LIMIT })
+    Object.entries({ ...submittedFilters, page, limit: LIMIT })
       .filter(([, v]) => v !== undefined && v !== '' && v !== null)
       .map(([k, v]) => [k, String(v)])
   )
@@ -123,6 +135,8 @@ export default function SearchPage() {
   })
 
   const activeCount = Object.values(filters).filter(v => v !== undefined && v !== '').length
+  const submittedCount = Object.values(submittedFilters).filter(v => v !== undefined && v !== '').length
+  const hasPendingChanges = !aiMode && JSON.stringify(filters) !== JSON.stringify(submittedFilters)
 
   return (
     <div className="mx-auto max-w-7xl px-4 pb-24">
@@ -222,9 +236,13 @@ export default function SearchPage() {
             >
               <div className="card p-4 flex flex-col gap-4 sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-sm">
-                    Filtres{activeCount > 0 && (
-                      <span className="ml-1.5 rounded-full bg-primary-600 text-white px-1.5 py-0.5 text-xs">{activeCount}</span>
+                  <span className="font-bold text-sm flex items-center gap-1.5">
+                    Filtres
+                    {submittedCount > 0 && (
+                      <span className="rounded-full bg-primary-600 text-white px-1.5 py-0.5 text-xs">{submittedCount}</span>
+                    )}
+                    {hasPendingChanges && (
+                      <span className="rounded-full bg-amber-400 w-2 h-2 inline-block" title="Filtres non appliqués" />
                     )}
                   </span>
                   <div className="flex items-center gap-2">
@@ -255,6 +273,7 @@ export default function SearchPage() {
                       placeholder="Nom, quartier, filière…"
                       value={filters.q ?? ''}
                       onChange={e => set('q', e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); runSearch() } }}
                       className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                     />
                     {filters.q && (
@@ -357,6 +376,21 @@ export default function SearchPage() {
                     />
                   </>
                 )}
+
+                <button
+                  type="button"
+                  onClick={runSearch}
+                  disabled={isFetching}
+                  className={clsx(
+                    'mt-1 w-full rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors flex items-center justify-center gap-2',
+                    hasPendingChanges
+                      ? 'bg-primary-600 text-white hover:bg-primary-700 cursor-pointer shadow-sm'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700'
+                  )}
+                >
+                  <Search size={14} />
+                  {isFetching ? 'Recherche…' : hasPendingChanges ? 'Appliquer les filtres' : 'Rechercher'}
+                </button>
               </div>
             </motion.aside>
           )}
@@ -382,8 +416,8 @@ export default function SearchPage() {
               <span className="hidden md:inline">
                 {showFilters ? 'Masquer' : 'Filtres'}
               </span>
-              {!showFilters && activeCount > 0 && (
-                <span className="rounded-full bg-primary-600 text-white px-1.5 py-0.5 text-xs">{activeCount}</span>
+              {!showFilters && submittedCount > 0 && (
+                <span className="rounded-full bg-primary-600 text-white px-1.5 py-0.5 text-xs">{submittedCount}</span>
               )}
             </button>
             <span className="text-sm text-slate-500 dark:text-slate-400">
@@ -395,15 +429,15 @@ export default function SearchPage() {
           </div>
 
           {/* Chips filtres actifs */}
-          {activeCount > 0 && (
+          {submittedCount > 0 && (
             <div className="flex flex-wrap gap-2 mb-4">
-              {(Object.entries(filters) as [keyof SearchFilters, unknown][]).map(([k, v]) => {
+              {(Object.entries(submittedFilters) as [keyof SearchFilters, unknown][]).map(([k, v]) => {
                 if (v === undefined || v === '' || v === false) return null
                 const label = k === 'q' ? `"${v}"` : k === 'fuzzy' ? 'Fuzzy' : FILTER_LABELS[k] ? `${FILTER_LABELS[k]} : ${v}` : String(v)
                 return (
                   <button
                     key={k}
-                    onClick={() => set(k, undefined)}
+                    onClick={() => removeSubmittedFilter(k)}
                     className="flex items-center gap-1 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 px-3 py-1 text-xs font-medium hover:bg-primary-100 cursor-pointer transition-colors"
                   >
                     {label} <X size={11} />
