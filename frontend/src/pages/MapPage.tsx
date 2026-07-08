@@ -77,7 +77,7 @@ export default function MapPage() {
     <div className="mx-auto flex h-[calc(100dvh-5rem)] sm:h-[calc(100dvh-6rem)] max-w-[1600px] gap-0 lg:gap-4 px-0 lg:px-4">
       {/* SIDEBAR */}
       <aside className={clsx(
-        'fixed lg:static inset-0 lg:inset-auto z-40 lg:z-auto w-4/5 max-w-xs lg:w-80 shrink-0 flex-col gap-4 overflow-y-auto lg:rounded-xl border-r lg:border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-card',
+        'fixed lg:static inset-0 lg:inset-auto z-[70] lg:z-auto w-4/5 max-w-xs lg:w-80 shrink-0 flex-col gap-4 overflow-y-auto lg:rounded-xl border-r lg:border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-card',
         showSidebar ? 'flex' : 'hidden lg:flex'
       )}>
         {/* Bouton fermeture mobile */}
@@ -227,9 +227,9 @@ export default function MapPage() {
 
         {/* Overlay backdrop mobile */}
         {showSidebar && (
-          <div 
+          <div
             onClick={() => setShowSidebar(false)}
-            className="lg:hidden fixed inset-0 bg-black/40 z-30"
+            className="lg:hidden fixed inset-0 bg-black/40 z-[60]"
           />
         )}
 

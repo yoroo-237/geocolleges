@@ -1,9 +1,8 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import Navbar from '@/components/Navbar'
 import Home from '@/pages/Home'
-import MapPage from '@/pages/MapPage'
+import SearchMapPage from '@/pages/SearchMapPage'
 import StatisticsPage from '@/pages/StatisticsPage'
-import SearchPage from '@/pages/SearchPage'
 import CollegeDetail from '@/pages/CollegeDetail'
 import Login from '@/pages/Login'
 import AdminPage from '@/pages/AdminPage'
@@ -12,13 +11,15 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 
 export default function App() {
   return (
-    <div className="min-h-screen pb-10">
+    <div className="min-h-screen">
       <Navbar />
       <main className="mt-6">
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/recherche" element={<SearchPage />} />
-          <Route path="/carte" element={<MapPage />} />
+          <Route path="/explorer" element={<SearchMapPage />} />
+          {/* Redirects pour compatibilité avec les anciens liens */}
+          <Route path="/recherche" element={<Navigate to="/explorer" replace />} />
+          <Route path="/carte" element={<Navigate to="/explorer" replace />} />
           <Route path="/statistiques" element={<StatisticsPage />} />
           <Route path="/etablissement/:id" element={<CollegeDetail />} />
           <Route path="/a-propos" element={<About />} />

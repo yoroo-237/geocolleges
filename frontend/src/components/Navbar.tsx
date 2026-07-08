@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Map, LayoutDashboard, Home, Sun, Moon, LogOut, ShieldCheck, Menu, X, Search } from 'lucide-react'
+import { LayoutDashboard, Home, Sun, Moon, LogOut, ShieldCheck, Menu, X, Compass } from 'lucide-react'
 import { useState } from 'react'
 import { useTheme } from '@/hooks/useTheme'
 import { useAuth } from '@/hooks/useAuth'
@@ -7,8 +7,7 @@ import clsx from 'clsx'
 
 const links = [
   { to: '/', label: 'Accueil', icon: Home },
-  { to: '/recherche', label: 'Recherche', icon: Search },
-  { to: '/carte', label: 'Carte', icon: Map },
+  { to: '/explorer', label: 'Explorer', icon: Compass },
   { to: '/statistiques', label: 'Statistiques', icon: LayoutDashboard },
   { to: '/a-propos', label: 'À propos', icon: ShieldCheck },
 ]
