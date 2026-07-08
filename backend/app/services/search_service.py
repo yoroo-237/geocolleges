@@ -67,6 +67,12 @@ def apply_filters(db: Session, f: SearchFilters):
         query = query.filter(Etablissement.filiere.ilike(f"%{f.filiere}%"))
     if f.route:
         query = query.filter(Etablissement.route.ilike(f"%{f.route}%"))
+    if f.moyen_transport:
+        query = query.filter(Etablissement.moyen_transport.ilike(f"%{f.moyen_transport}%"))
+    if f.cantine_scolaire:
+        query = query.filter(Etablissement.cantine_scolaire.ilike(f"%{f.cantine_scolaire}%"))
+    if f.espace_sportif:
+        query = query.filter(Etablissement.espace_sportif.ilike(f"%{f.espace_sportif}%"))
     if f.telephone:
         query = query.filter(Etablissement.telephone.ilike(f"%{f.telephone}%"))
     if f.bus is not None:

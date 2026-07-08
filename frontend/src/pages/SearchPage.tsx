@@ -41,47 +41,11 @@ function Select({
   )
 }
 
-function Toggle({
-  label, value, onChange, icon: Icon,
-}: {
-  label: string
-  value: boolean | undefined
-  onChange: (v: boolean | undefined) => void
-  icon?: React.ElementType
-}) {
-  const cycle = (cur: boolean | undefined): boolean | undefined => {
-    if (cur === undefined) return true
-    if (cur === true) return false
-    return undefined
-  }
-  const label2 = value === true ? 'Oui' : value === false ? 'Non' : 'Tous'
-  const color = value === true ? 'bg-green-500' : value === false ? 'bg-red-400' : 'bg-slate-300 dark:bg-slate-600'
-
-  return (
-    <div className="flex flex-col gap-1">
-      <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide flex items-center gap-1">
-        {Icon && <Icon size={12} />} {label}
-      </label>
-      <button
-        type="button"
-        onClick={() => onChange(cycle(value))}
-        className={clsx(
-          'flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-white transition-colors cursor-pointer',
-          color,
-        )}
-      >
-        <span className="h-2 w-2 rounded-full bg-white/70" />
-        {label2}
-      </button>
-    </div>
-  )
-}
-
 function Badge({ children, color = 'slate' }: { children: React.ReactNode; color?: string }) {
   const colors: Record<string, string> = {
     green: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
-    red: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
-    blue: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+    red:   'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+    blue:  'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
     slate: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
   }
   return (
@@ -93,22 +57,30 @@ function Badge({ children, color = 'slate' }: { children: React.ReactNode; color
 
 const EMPTY: SearchFilters = {}
 
+const FILTER_LABELS: Record<string, string> = {
+  q: 'Recherche',
+  nom: 'Nom',
+  quartier: 'Quartier',
+  statut: 'Statut',
+  type_enseignement: "Type d'enseignement",
+  section: 'Section',
+  cycle: 'Cycle',
+  filiere: 'Filière',
+  route: 'Route',
+  moyen_transport: 'Transport',
+  cantine_scolaire: 'Cantine',
+  espace_sportif: 'Espace sportif',
+  telephone: 'Téléphone',
+  fuzzy: 'Recherche floue',
+}
+
 export default function SearchPage() {
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [, setSearchParams] = useSearchParams()
   const [filters, setFilters] = useState<SearchFilters>(EMPTY)
   const [showFilters, setShowFilters] = useState(true)
   const [page, setPage] = useState(1)
 
-  // Sync depuis URL au montage
-  useEffect(() => {
-    const f: SearchFilters = {}
-    searchParams.forEach((v, k) => {
-      if (k === 'bus' || k === 'cantine' || k === 'sport') (f as any)[k] = v === 'true'
-      else if (k === 'fuzzy') f.fuzzy = v === 'true'
-      else (f as any)[k] = v
-    })
-    setFilters(f)
-  }, [])
+  useEffect(() => { setPage(1) }, [filters])
 
   const set = (key: keyof SearchFilters, value: unknown) =>
     setFilters(prev => ({ ...prev, [key]: value === '' ? undefined : value }))
@@ -141,7 +113,7 @@ export default function SearchPage() {
       <div className="mt-2 mb-6">
         <h1 className="text-2xl font-extrabold">Recherche d'établissements</h1>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Filtrez par critère — les options disponibles sont issues directement de la base de données.
+          Les options de chaque filtre sont issues directement de la base de données.
         </p>
       </div>
 
@@ -155,11 +127,15 @@ export default function SearchPage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -16 }}
               transition={{ duration: 0.2 }}
-              className="hidden md:flex flex-col gap-4 w-64 shrink-0"
+              className="hidden md:flex flex-col gap-4 w-72 shrink-0"
             >
-              <div className="card p-4 flex flex-col gap-4 sticky top-24">
+              <div className="card p-4 flex flex-col gap-4 sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-sm">Filtres {activeCount > 0 && <span className="ml-1 rounded-full bg-primary-600 text-white px-1.5 py-0.5 text-xs">{activeCount}</span>}</span>
+                  <span className="font-bold text-sm">
+                    Filtres{activeCount > 0 && (
+                      <span className="ml-1.5 rounded-full bg-primary-600 text-white px-1.5 py-0.5 text-xs">{activeCount}</span>
+                    )}
+                  </span>
                   {activeCount > 0 && (
                     <button onClick={reset} className="flex items-center gap-1 text-xs text-slate-500 hover:text-red-500 cursor-pointer">
                       <RotateCcw size={12} /> Réinitialiser
@@ -186,28 +162,94 @@ export default function SearchPage() {
                       </button>
                     )}
                   </div>
-                  <label className="flex items-center gap-2 text-xs text-slate-500 cursor-pointer mt-1">
-                    <input type="checkbox" checked={!!filters.fuzzy} onChange={e => set('fuzzy', e.target.checked || undefined)} className="rounded" />
-                    Recherche floue (tolère les fautes)
+                  <label className="flex items-center gap-2 text-xs text-slate-500 cursor-pointer mt-0.5">
+                    <input
+                      type="checkbox"
+                      checked={!!filters.fuzzy}
+                      onChange={e => set('fuzzy', e.target.checked || undefined)}
+                      className="rounded"
+                    />
+                    Tolérer les fautes (fuzzy)
                   </label>
                 </div>
 
                 {options && (
                   <>
-                    <Select label="Quartier" value={filters.quartier ?? ''} options={options.quartiers} onChange={v => set('quartier', v)} icon={MapPin} />
-                    <Select label="Statut" value={filters.statut ?? ''} options={options.statuts} onChange={v => set('statut', v)} />
-                    <Select label="Type d'enseignement" value={filters.type_enseignement ?? ''} options={options.types_enseignement} onChange={v => set('type_enseignement', v)} icon={BookOpen} />
-                    <Select label="Section" value={filters.section ?? ''} options={options.sections} onChange={v => set('section', v)} />
-                    <Select label="Cycle" value={filters.cycle ?? ''} options={options.cycles} onChange={v => set('cycle', v)} icon={Layers} />
-                    <Select label="Filière" value={filters.filiere ?? ''} options={options.filieres} onChange={v => set('filiere', v)} />
-                    <Select label="Type de route" value={filters.route ?? ''} options={options.routes} onChange={v => set('route', v)} icon={Route} />
+                    <div className="border-t border-slate-100 dark:border-slate-800 pt-1" />
 
-                    <div className="border-t border-slate-100 dark:border-slate-800 pt-3 flex flex-col gap-3">
-                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Équipements</p>
-                      <Toggle label="Transport scolaire" value={filters.bus} onChange={v => set('bus', v)} icon={Bus} />
-                      <Toggle label="Cantine scolaire" value={filters.cantine} onChange={v => set('cantine', v)} icon={UtensilsCrossed} />
-                      <Toggle label="Espace sportif" value={filters.sport} onChange={v => set('sport', v)} icon={Trophy} />
-                    </div>
+                    {/* Critères établissement */}
+                    <Select
+                      label="Quartier"
+                      value={filters.quartier ?? ''}
+                      options={options.quartiers}
+                      onChange={v => set('quartier', v)}
+                      icon={MapPin}
+                    />
+                    <Select
+                      label="Statut"
+                      value={filters.statut ?? ''}
+                      options={options.statuts}
+                      onChange={v => set('statut', v)}
+                    />
+                    <Select
+                      label="Type d'enseignement"
+                      value={filters.type_enseignement ?? ''}
+                      options={options.types_enseignement}
+                      onChange={v => set('type_enseignement', v)}
+                      icon={BookOpen}
+                    />
+                    <Select
+                      label="Section"
+                      value={filters.section ?? ''}
+                      options={options.sections}
+                      onChange={v => set('section', v)}
+                    />
+                    <Select
+                      label="Cycle d'enseignement"
+                      value={filters.cycle ?? ''}
+                      options={options.cycles}
+                      onChange={v => set('cycle', v)}
+                      icon={Layers}
+                    />
+                    <Select
+                      label="Filière"
+                      value={filters.filiere ?? ''}
+                      options={options.filieres}
+                      onChange={v => set('filiere', v)}
+                    />
+
+                    <div className="border-t border-slate-100 dark:border-slate-800 pt-1" />
+
+                    {/* Infrastructures */}
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide -mb-1">Infrastructures</p>
+                    <Select
+                      label="Type de route"
+                      value={filters.route ?? ''}
+                      options={options.routes}
+                      onChange={v => set('route', v)}
+                      icon={Route}
+                    />
+                    <Select
+                      label="Transport scolaire"
+                      value={filters.moyen_transport ?? ''}
+                      options={options.moyens_transport}
+                      onChange={v => set('moyen_transport', v)}
+                      icon={Bus}
+                    />
+                    <Select
+                      label="Cantine scolaire"
+                      value={filters.cantine_scolaire ?? ''}
+                      options={options.cantines}
+                      onChange={v => set('cantine_scolaire', v)}
+                      icon={UtensilsCrossed}
+                    />
+                    <Select
+                      label="Espace sportif"
+                      value={filters.espace_sportif ?? ''}
+                      options={options.espaces_sportifs}
+                      onChange={v => set('espace_sportif', v)}
+                      icon={Trophy}
+                    />
                   </>
                 )}
               </div>
@@ -224,27 +266,29 @@ export default function SearchPage() {
               className="hidden md:flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
             >
               <SlidersHorizontal size={16} />
-              {showFilters ? 'Masquer' : 'Afficher'} les filtres
+              {showFilters ? 'Masquer' : 'Filtres'}
+              {!showFilters && activeCount > 0 && (
+                <span className="rounded-full bg-primary-600 text-white px-1.5 py-0.5 text-xs">{activeCount}</span>
+              )}
             </button>
             <span className="text-sm text-slate-500 dark:text-slate-400">
-              {isFetching ? (
-                <span className="animate-pulse">Recherche…</span>
-              ) : (
-                <>{results?.length ?? 0} résultat{(results?.length ?? 0) !== 1 ? 's' : ''}</>
-              )}
+              {isFetching
+                ? <span className="animate-pulse">Recherche…</span>
+                : <>{results?.length ?? 0} résultat{(results?.length ?? 0) !== 1 ? 's' : ''}</>
+              }
             </span>
           </div>
 
-          {/* Filtres actifs (chips) */}
+          {/* Chips filtres actifs */}
           {activeCount > 0 && (
             <div className="flex flex-wrap gap-2 mb-4">
-              {Object.entries(filters).map(([k, v]) => {
-                if (v === undefined || v === '') return null
-                const label = k === 'q' ? `"${v}"` : k === 'bus' ? (v ? 'Avec bus' : 'Sans bus') : k === 'cantine' ? (v ? 'Avec cantine' : 'Sans cantine') : k === 'sport' ? (v ? 'Avec sport' : 'Sans sport') : k === 'fuzzy' ? 'Floue' : String(v)
+              {(Object.entries(filters) as [keyof SearchFilters, unknown][]).map(([k, v]) => {
+                if (v === undefined || v === '' || v === false) return null
+                const label = k === 'q' ? `"${v}"` : k === 'fuzzy' ? 'Fuzzy' : FILTER_LABELS[k] ? `${FILTER_LABELS[k]} : ${v}` : String(v)
                 return (
                   <button
                     key={k}
-                    onClick={() => set(k as keyof SearchFilters, undefined)}
+                    onClick={() => set(k, undefined)}
                     className="flex items-center gap-1 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 px-3 py-1 text-xs font-medium hover:bg-primary-100 cursor-pointer transition-colors"
                   >
                     {label} <X size={11} />
@@ -263,7 +307,7 @@ export default function SearchPage() {
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  transition={{ delay: i * 0.03 }}
+                  transition={{ delay: i * 0.025 }}
                 >
                   <Link
                     to={`/etablissement/${e.id}`}
@@ -288,26 +332,36 @@ export default function SearchPage() {
                         {e.cycle_enseignement && <Badge>{e.cycle_enseignement}</Badge>}
                         {e.filiere && <Badge>{e.filiere}</Badge>}
                         {e.route && (
-                          <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                          <span className="flex items-center gap-1 text-xs text-slate-400">
                             <Route size={11} /> {e.route}
                           </span>
                         )}
                       </div>
 
-                      <div className="mt-2 flex gap-3">
+                      <div className="mt-2 flex flex-wrap gap-3">
                         {e.moyen_transport && (
-                          <span className={clsx('flex items-center gap-1 text-xs font-medium', e.moyen_transport.includes('non') ? 'text-slate-400' : 'text-green-600 dark:text-green-400')}>
-                            <Bus size={12} /> {e.moyen_transport.includes('non') ? 'Pas de bus' : 'Bus dispo'}
+                          <span className={clsx(
+                            'flex items-center gap-1 text-xs font-medium',
+                            e.moyen_transport.toLowerCase().includes('non')
+                              ? 'text-slate-400'
+                              : 'text-green-600 dark:text-green-400'
+                          )}>
+                            <Bus size={12} /> {e.moyen_transport}
                           </span>
                         )}
                         {e.cantine_scolaire && (
                           <span className="flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400">
-                            <UtensilsCrossed size={12} /> Cantine
+                            <UtensilsCrossed size={12} /> {e.cantine_scolaire}
                           </span>
                         )}
-                        {e.espace_sportif && !e.espace_sportif.toLowerCase().startsWith("pas") && (
-                          <span className="flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400">
-                            <Trophy size={12} /> Sport
+                        {e.espace_sportif && (
+                          <span className={clsx(
+                            'flex items-center gap-1 text-xs font-medium',
+                            e.espace_sportif.toLowerCase().startsWith('pas')
+                              ? 'text-slate-400'
+                              : 'text-blue-600 dark:text-blue-400'
+                          )}>
+                            <Trophy size={12} /> {e.espace_sportif}
                           </span>
                         )}
                         {e.telephone && (

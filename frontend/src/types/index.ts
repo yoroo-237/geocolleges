@@ -27,10 +27,10 @@ export interface SearchFilters {
   cycle?: string
   filiere?: string
   route?: string
+  moyen_transport?: string
+  cantine_scolaire?: string
+  espace_sportif?: string
   telephone?: string
-  bus?: boolean
-  cantine?: boolean
-  sport?: boolean
   fuzzy?: boolean
   page?: number
   limit?: number

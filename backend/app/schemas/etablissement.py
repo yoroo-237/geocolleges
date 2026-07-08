@@ -63,6 +63,9 @@ class SearchFilters(BaseModel):
     cycle: Optional[str] = None
     filiere: Optional[str] = None
     route: Optional[str] = None
+    moyen_transport: Optional[str] = None
+    cantine_scolaire: Optional[str] = None
+    espace_sportif: Optional[str] = None
     telephone: Optional[str] = None
     bus: Optional[bool] = None
     cantine: Optional[bool] = None
