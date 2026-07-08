@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, SlidersHorizontal, X, ChevronRight,
   Bus, UtensilsCrossed, Trophy, Phone, MapPin,
-  BookOpen, Layers, Route, RotateCcw,
+  BookOpen, Layers, Route, RotateCcw, Sparkles,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import type { Etablissement, SearchFilters, SearchOptions } from '@/types'
@@ -79,13 +79,15 @@ export default function SearchPage() {
   const [filters, setFilters] = useState<SearchFilters>(EMPTY)
   const [showFilters, setShowFilters] = useState(true)
   const [page, setPage] = useState(1)
+  const [aiMode, setAiMode] = useState(false)
+  const [aiQuery, setAiQuery] = useState('')
 
-  useEffect(() => { setPage(1) }, [filters])
+  useEffect(() => { setPage(1) }, [filters, aiMode, aiQuery])
 
   const set = (key: keyof SearchFilters, value: unknown) =>
     setFilters(prev => ({ ...prev, [key]: value === '' ? undefined : value }))
 
-  const reset = () => { setFilters(EMPTY); setPage(1); setSearchParams({}) }
+  const reset = () => { setFilters(EMPTY); setAiQuery(''); setPage(1); setSearchParams({}) }
 
   const { data: options } = useQuery<SearchOptions>({
     queryKey: ['search-options'],
@@ -100,8 +102,14 @@ export default function SearchPage() {
   )
 
   const { data: results, isFetching } = useQuery<Etablissement[]>({
-    queryKey: ['search', params],
-    queryFn: async () => (await api.get('/search', { params })).data,
+    queryKey: aiMode ? ['search-ai', aiQuery, page] : ['search', params],
+    queryFn: async () => {
+      if (aiMode && aiQuery.trim()) {
+        return (await api.get('/search/ai', { params: { query: aiQuery, page, limit: LIMIT } })).data
+      }
+      return (await api.get('/search', { params })).data
+    },
+    enabled: aiMode ? aiQuery.trim().length > 0 : true,
     placeholderData: prev => prev,
   })
 
@@ -110,11 +118,70 @@ export default function SearchPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 pb-24">
       {/* Header */}
-      <div className="mt-2 mb-6">
+      <div className="mt-2 mb-4">
         <h1 className="text-2xl font-extrabold">Recherche d'établissements</h1>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           Les options de chaque filtre sont issues directement de la base de données.
         </p>
+      </div>
+
+      {/* Barre recherche IA */}
+      <div className="mb-6 card p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <button
+            type="button"
+            onClick={() => setAiMode(m => !m)}
+            className={clsx(
+              'flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer',
+              aiMode
+                ? 'bg-violet-600 text-white shadow-sm'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+            )}
+          >
+            <Sparkles size={13} />
+            Recherche IA DeepSeek
+          </button>
+          {aiMode && (
+            <span className="text-xs text-violet-500 dark:text-violet-400">
+              Décrivez votre recherche en langage naturel
+            </span>
+          )}
+        </div>
+
+        {aiMode && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="relative"
+          >
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-violet-400">
+              <Sparkles size={16} />
+            </div>
+            <input
+              type="text"
+              placeholder='Ex : "lycée public avec bus et cantine à Mabanda" ou "collège bilingue technique"'
+              value={aiQuery}
+              onChange={e => setAiQuery(e.target.value)}
+              className="w-full rounded-xl border-2 border-violet-300 dark:border-violet-700 bg-white dark:bg-slate-900 pl-9 pr-10 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 placeholder:text-slate-400"
+            />
+            {aiQuery && (
+              <button
+                type="button"
+                aria-label="Effacer la recherche"
+                onClick={() => setAiQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
+              >
+                <X size={15} />
+              </button>
+            )}
+            {isFetching && aiQuery && (
+              <p className="mt-1.5 text-xs text-violet-500 animate-pulse flex items-center gap-1">
+                <Sparkles size={11} /> DeepSeek interprète votre requête…
+              </p>
+            )}
+          </motion.div>
+        )}
       </div>
 
       <div className="flex gap-6">

@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 8
     ANTHROPIC_API_KEY: str | None = os.environ.get("ANTHROPIC_API_KEY")
+    DEEPSEEK_API_KEY: str | None = os.environ.get("DEEPSEEK_API_KEY")
+    DEEPSEEK_BASE_URL: str = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+    DEEPSEEK_MODEL: str = os.environ.get("DEEPSEEK_MODEL", "deepseek-chat")
     CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000", "http://frontend:80"]
     CORS_EXTRA_ORIGINS: str = ""  # URLs supplémentaires séparées par des virgules (ex: Vercel)
 
