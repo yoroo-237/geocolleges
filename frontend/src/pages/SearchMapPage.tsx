@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, Bus, UtensilsCrossed, Trophy, MapPin, Locate, Maximize, X, Phone,
   Route as RouteIcon, SlidersHorizontal, Sparkles, RotateCcw, BookOpen,
-  Layers, List, Map as MapIcon, ChevronRight,
+  Layers, List, Map as MapIcon, ChevronRight, Navigation,
 } from 'lucide-react'
 import clsx from 'clsx'
 import type { Etablissement, SearchFilters, SearchOptions } from '@/types'
@@ -475,6 +475,11 @@ export default function SearchMapPage() {
                 <MapPin size={10} /> {e.quartier_nom}
               </p>
             )}
+            {e.latitude && e.longitude && (
+              <p className="mt-0.5 flex items-center gap-1 text-[10px] text-slate-400 font-mono">
+                <Navigation size={9} /> {e.latitude.toFixed(5)}, {e.longitude.toFixed(5)}
+              </p>
+            )}
             <div className="mt-1.5 flex items-center gap-2.5">
               {e.moyen_transport && !e.moyen_transport.toLowerCase().includes('non') && (
                 <Bus size={12} className="text-primary-500" />
@@ -588,12 +593,25 @@ export default function SearchMapPage() {
                       <div className="min-w-[200px] p-1">
                         <p className="font-bold text-slate-900 text-sm">{e.nom}</p>
                         <p className="mt-0.5 text-xs text-slate-500">{e.quartier_nom} · {e.statut}</p>
-                        <Link
-                          to={`/etablissement/${e.id}`}
-                          className="mt-2 inline-block text-xs font-semibold text-primary-600 hover:underline"
-                        >
-                          Voir la fiche complète →
-                        </Link>
+                        <p className="mt-1 font-mono text-[10px] text-slate-400">
+                          {e.latitude?.toFixed(5)}, {e.longitude?.toFixed(5)}
+                        </p>
+                        <div className="mt-2 flex items-center gap-2">
+                          <Link
+                            to={`/etablissement/${e.id}`}
+                            className="text-xs font-semibold text-primary-600 hover:underline"
+                          >
+                            Voir la fiche →
+                          </Link>
+                          <a
+                            href={`https://www.google.com/maps?q=${e.latitude},${e.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[10px] text-slate-400 hover:text-primary-500"
+                          >
+                            Google Maps ↗
+                          </a>
+                        </div>
                       </div>
                     </Popup>
                   </Marker>
@@ -684,6 +702,21 @@ export default function SearchMapPage() {
                 <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
                   <RouteIcon size={11} /> {selected.route}
                 </p>
+              )}
+              {selected.latitude && selected.longitude && (
+                <div className="mt-1.5 flex items-center justify-between gap-2">
+                  <p className="flex items-center gap-1 font-mono text-[10px] text-slate-400">
+                    <Navigation size={9} /> {selected.latitude.toFixed(5)}, {selected.longitude.toFixed(5)}
+                  </p>
+                  <a
+                    href={`https://www.google.com/maps?q=${selected.latitude},${selected.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-primary-500 hover:underline shrink-0"
+                  >
+                    Google Maps ↗
+                  </a>
+                </div>
               )}
               <Link
                 to={`/etablissement/${selected.id}`}

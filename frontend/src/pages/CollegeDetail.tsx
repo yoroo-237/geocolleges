@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import type { Etablissement } from '@/types'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
-import { ArrowLeft, Phone, MapPin, Bus, UtensilsCrossed, Trophy, GraduationCap, Route as RouteIcon, Download } from 'lucide-react'
+import { ArrowLeft, Phone, MapPin, Bus, UtensilsCrossed, Trophy, GraduationCap, Route as RouteIcon, Download, Copy, Check, Navigation } from 'lucide-react'
+import { useState } from 'react'
 
 export default function CollegeDetail() {
   const { id } = useParams()
@@ -11,6 +12,14 @@ export default function CollegeDetail() {
     queryKey: ['college', id],
     queryFn: async () => (await api.get(`/college/${id}`)).data,
   })
+  const [copied, setCopied] = useState(false)
+
+  const copyCoords = () => {
+    if (!e?.latitude || !e?.longitude) return
+    navigator.clipboard.writeText(`${e.latitude}, ${e.longitude}`)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   if (isLoading || !e) {
     return <div className="mx-auto max-w-4xl px-4 py-16 animate-pulse"><div className="h-80 rounded-xl2 bg-slate-200 dark:bg-slate-800" /></div>
@@ -60,7 +69,39 @@ export default function CollegeDetail() {
               ))}
             </dl>
 
-            <div className="mt-6 flex flex-wrap gap-2">
+            {e.latitude && e.longitude && (
+              <div className="mt-6 rounded-xl border border-slate-200 dark:border-slate-700 p-3">
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-1.5">
+                  <Navigation size={12} /> Coordonnées GPS
+                </p>
+                <div className="flex items-center justify-between gap-2">
+                  <code className="text-xs text-slate-700 dark:text-slate-200 font-mono">
+                    {e.latitude.toFixed(6)}, {e.longitude.toFixed(6)}
+                  </code>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={copyCoords}
+                      title="Copier les coordonnées"
+                      className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-primary-600 hover:border-primary-400 transition-colors cursor-pointer"
+                    >
+                      {copied ? <Check size={11} className="text-green-500" /> : <Copy size={11} />}
+                      {copied ? 'Copié' : 'Copier'}
+                    </button>
+                    <a
+                      href={`https://www.google.com/maps?q=${e.latitude},${e.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium bg-primary-600 text-white hover:bg-primary-700 transition-colors cursor-pointer"
+                    >
+                      <MapPin size={11} /> Google Maps
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-4 flex flex-wrap gap-2">
               <a href={`/api/export/csv`} className="btn-secondary !py-2 !px-3 text-xs"><Download size={13} /> CSV</a>
               <a href={`/api/export/geojson`} className="btn-secondary !py-2 !px-3 text-xs"><Download size={13} /> GeoJSON</a>
               <a href={`/api/export/pdf`} className="btn-secondary !py-2 !px-3 text-xs"><Download size={13} /> PDF</a>
